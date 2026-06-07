@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/bridgehop-core",
+    # bridgehop-cli and src-tauri are added in later commits as they come online.
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/center2055/BridgeHop"
+authors = ["center2055"]
+
+[workspace.dependencies]
+bridgehop-core = { path = "crates/bridgehop-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tracing = "0.1"
+regex = "1"
+once_cell = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "sync", "io-util"] }
+
+# Smallest-binary-first release profile (binary size is BridgeHop's #1 constraint).
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

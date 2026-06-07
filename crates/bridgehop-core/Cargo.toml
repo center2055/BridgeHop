@@ -1,0 +1,30 @@
+[package]
+name = "bridgehop-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Core engine for BridgeHop: Tor bridge parsing, reachability scanning, sources, and storage."
+
+[features]
+default = []
+# Desktop-only: launch real pluggable-transport clients to confirm a handshake.
+deep-verify = []
+# QR encode/decode for import/export.
+qr = []
+# MaxMind GeoLite2 country/ASN lookups.
+geo = []
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
+tokio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
