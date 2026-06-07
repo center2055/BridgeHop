@@ -51,7 +51,9 @@ pub fn parse_bridge_line(line: &str) -> Option<Bridge> {
 
     let first_token = normalized.split_whitespace().next().unwrap_or("");
     let transport = if is_known_token(first_token) {
-        first_token.parse().expect("Transport::from_str is infallible")
+        first_token
+            .parse()
+            .expect("Transport::from_str is infallible")
     } else {
         Transport::Vanilla
     };
@@ -101,7 +103,9 @@ fn strip_bridge_prefix(s: &str) -> Option<&str> {
 }
 
 fn is_known_token(token: &str) -> bool {
-    KNOWN_TRANSPORTS.iter().any(|k| k.eq_ignore_ascii_case(token))
+    KNOWN_TRANSPORTS
+        .iter()
+        .any(|k| k.eq_ignore_ascii_case(token))
 }
 
 /// Extract the first IP:port endpoint (IPv4 preferred, then bracketed IPv6).
@@ -316,7 +320,10 @@ mod tests {
                     fronts=cdn.sstatic.net,assets.cloud.censys.io transport=min";
         let b = parse_bridge_line(line).unwrap();
         assert_eq!(b.transport, Transport::Conjure);
-        assert_eq!(b.front_host.as_deref(), Some("registration.refraction.network"));
+        assert_eq!(
+            b.front_host.as_deref(),
+            Some("registration.refraction.network")
+        );
         assert_eq!(b.params.get("transport").map(String::as_str), Some("min"));
     }
 
@@ -347,7 +354,10 @@ mod tests {
 
     #[test]
     fn stable_id_is_whitespace_and_case_insensitive() {
-        let a = parse_bridge_line("obfs4 5.102.61.223:2133 03FB5AF28A45562076CA5520CCAF05D7F15330E8 cert=AbC iat-mode=0").unwrap();
+        let a = parse_bridge_line(
+            "obfs4 5.102.61.223:2133 03FB5AF28A45562076CA5520CCAF05D7F15330E8 cert=AbC iat-mode=0",
+        )
+        .unwrap();
         let b = parse_bridge_line("OBFS4   5.102.61.223:2133   03fb5af28a45562076ca5520ccaf05d7f15330e8   cert=AbC   iat-mode=0").unwrap();
         assert_eq!(a.id, b.id);
     }

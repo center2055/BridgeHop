@@ -25,6 +25,10 @@ tracing = { workspace = true }
 regex = { workspace = true }
 once_cell = { workspace = true }
 tokio = { workspace = true }
+tokio-util = "0.7"
+# Pure-Rust TLS via the ring provider (no aws-lc-rs C build) — smaller binary, simpler builds.
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+webpki-roots = "0.26"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
