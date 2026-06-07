@@ -1,0 +1,12 @@
+# Normalize line endings: store all text files with LF in the repository.
+* text=auto eol=lf
+
+# Treat common binary assets as binary (no EOL conversion / diffing).
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.mmdb binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
