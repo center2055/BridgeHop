@@ -2,7 +2,8 @@
 resolver = "2"
 members = [
     "crates/bridgehop-core",
-    # bridgehop-cli and src-tauri are added in later commits as they come online.
+    "crates/bridgehop-cli",
+    # src-tauri is added in a later commit once the front end is in place.
 ]
 
 [workspace.package]
@@ -21,6 +22,7 @@ thiserror = "2"
 tracing = "0.1"
 regex = "1"
 once_cell = "1"
+clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "sync", "io-util"] }
 
 # Smallest-binary-first release profile (binary size is BridgeHop's #1 constraint).

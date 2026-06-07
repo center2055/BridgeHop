@@ -1,0 +1,20 @@
+[package]
+name = "bridgehop-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Command-line companion for BridgeHop: scriptable Tor bridge reachability scanning."
+
+[[bin]]
+name = "bridgehop"
+path = "src/main.rs"
+
+[dependencies]
+bridgehop-core = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = "0.7"
