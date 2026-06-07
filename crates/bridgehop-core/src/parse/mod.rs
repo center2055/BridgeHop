@@ -85,7 +85,9 @@ where
 
 /// Trim, drop blank/comment lines, and strip a leading `Bridge ` prefix.
 fn normalize_line(line: &str) -> Option<String> {
-    let trimmed = line.trim();
+    // Strip a leading UTF-8 BOM (common when reading files saved by some editors/tools) so the
+    // first line — often a `#` comment — is still recognized correctly.
+    let trimmed = line.trim_start_matches('\u{feff}').trim();
     if trimmed.is_empty() || trimmed.starts_with('#') {
         return None;
     }
@@ -240,6 +242,15 @@ mod tests {
         assert!(parse_bridge_line("").is_none());
         assert!(parse_bridge_line("   ").is_none());
         assert!(parse_bridge_line("# a comment").is_none());
+    }
+
+    #[test]
+    fn strips_utf8_bom_before_comment_and_data() {
+        // A file with a UTF-8 BOM must not turn its first comment line into a phantom bridge.
+        assert!(parse_bridge_line("\u{feff}# a comment").is_none());
+        let b = parse_bridge_line("\u{feff}1.2.3.4:8080 A7E7616C91B2FD83005B986A816EE9365F1360F4")
+            .unwrap();
+        assert_eq!(b.endpoint.unwrap().port, 8080);
     }
 
     #[test]
