@@ -1,0 +1,35 @@
+# Rust / Cargo
+/target/
+**/target/
+**/*.rs.bk
+
+# Node / frontend build output
+node_modules/
+ui/.svelte-kit/
+ui/build/
+ui/dist/
+dist/
+
+# Tauri generated / build output
+src-tauri/gen/
+
+# Downloaded runtime assets (never vendored into git)
+src-tauri/resources/pt/
+src-tauri/resources/geo/
+*.mmdb
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
