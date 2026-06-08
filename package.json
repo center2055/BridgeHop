@@ -1,0 +1,14 @@
+{
+  "name": "bridgehop",
+  "private": true,
+  "description": "BridgeHop desktop app orchestration (Tauri CLI).",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "icon": "tauri icon branding/source.png"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0"
+  }
+}

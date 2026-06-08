@@ -1,0 +1,214 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * Semantic design tokens (light + dark), matching the BridgeHop logo  *
+ * teal -> blue accent. Theme is switched via data-theme on <html>.    *
+ * ------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+  --bg: #f5f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-hover: #e9edf2;
+  --border: #e1e5ea;
+  --border-strong: #cdd3da;
+  --text: #161a1f;
+  --text-muted: #59616b;
+  --text-subtle: #8b929b;
+  --accent: #0d9488;
+  --accent-2: #2563eb;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --accent-contrast: #ffffff;
+  --ok: #15a34a;
+  --ok-soft: rgba(21, 163, 74, 0.13);
+  --slow: #c2740a;
+  --slow-soft: rgba(194, 116, 10, 0.14);
+  --down: #dc2626;
+  --down-soft: rgba(220, 38, 38, 0.12);
+  --fronted: #2563eb;
+  --fronted-soft: rgba(37, 99, 235, 0.12);
+  --skip: #6b7280;
+  --skip-soft: rgba(107, 114, 128, 0.12);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 6px 18px rgba(16, 24, 40, 0.06);
+  --radius: 14px;
+  --radius-sm: 9px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0d1014;
+  --surface: #151a21;
+  --surface-2: #1b222b;
+  --surface-hover: #222b35;
+  --border: #28303a;
+  --border-strong: #36404c;
+  --text: #e7ebf0;
+  --text-muted: #99a3b0;
+  --text-subtle: #69727e;
+  --accent: #2dd4bf;
+  --accent-2: #60a5fa;
+  --accent-soft: rgba(45, 212, 191, 0.14);
+  --accent-contrast: #04231f;
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.15);
+  --slow: #fbbf24;
+  --slow-soft: rgba(251, 191, 36, 0.15);
+  --down: #f87171;
+  --down-soft: rgba(248, 113, 113, 0.14);
+  --fronted: #60a5fa;
+  --fronted-soft: rgba(96, 165, 250, 0.15);
+  --skip: #9aa4b2;
+  --skip-soft: rgba(154, 164, 178, 0.13);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.38);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Primitives ------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+.btn:hover {
+  background: var(--surface-hover);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-primary {
+  border: none;
+  color: var(--accent-contrast);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.btn-primary:hover {
+  filter: brightness(1.05);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+.btn-danger {
+  border-color: transparent;
+  color: #fff;
+  background: var(--down);
+}
+.btn-danger:hover {
+  background: var(--down);
+  filter: brightness(1.05);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.input:focus,
+.textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.textarea {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.badge-ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+.badge-slow {
+  color: var(--slow);
+  background: var(--slow-soft);
+}
+.badge-down {
+  color: var(--down);
+  background: var(--down-soft);
+}
+.badge-fronted {
+  color: var(--fronted);
+  background: var(--fronted-soft);
+}
+.badge-skip {
+  color: var(--skip);
+  background: var(--skip-soft);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mono {
+  font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+}
