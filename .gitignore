@@ -33,3 +33,10 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local tooling / assistant artifacts — never committed
+.claude/
+CLAUDE.md
+**/CLAUDE.md
+.cursor/
+.aider*
