@@ -9,6 +9,7 @@ pub mod error;
 pub mod model;
 pub mod parse;
 pub mod scan;
+pub mod sources;
 
 pub use error::{Error, Result};
 pub use model::{Bridge, Endpoint, Reachability, ScanResult, Transport, SLOW_THRESHOLD_MS};

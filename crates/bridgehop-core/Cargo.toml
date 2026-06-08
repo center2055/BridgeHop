@@ -24,6 +24,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 regex = { workspace = true }
 once_cell = { workspace = true }
+reqwest = { workspace = true }
 tokio = { workspace = true }
 tokio-util = "0.7"
 # Pure-Rust TLS via the ring provider (no aws-lc-rs C build) — smaller binary, simpler builds.
