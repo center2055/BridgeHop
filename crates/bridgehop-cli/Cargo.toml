@@ -13,7 +13,7 @@ name = "bridgehop"
 path = "src/main.rs"
 
 [dependencies]
-bridgehop-core = { workspace = true }
+bridgehop-core = { workspace = true, features = ["qr"] }
 clap = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

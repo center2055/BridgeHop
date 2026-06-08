@@ -17,7 +17,9 @@ pub fn run() {
             commands::cancel_scan,
             commands::fetch_bridges,
             commands::list_runs,
-            commands::reliability
+            commands::reliability,
+            commands::export_bridges,
+            commands::qr_svg
         ])
         .run(tauri::generate_context!())
         .expect("error while running BridgeHop");

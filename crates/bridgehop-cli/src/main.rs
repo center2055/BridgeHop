@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 
+use bridgehop_core::io::{export, qr_svg, ExportFormat};
 use bridgehop_core::sources::{self, Category as SrcCategory, Selection};
 use bridgehop_core::store::{RunMeta, Store};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, Reachability, ScanOptions, ScanResult};
@@ -30,6 +31,36 @@ enum Command {
     Sources(SourcesArgs),
     /// Show recorded scan history and per-bridge reliability.
     History(HistoryArgs),
+    /// Convert/export bridge lines (plain, torrc, JSON, or a QR code).
+    Export(ExportArgs),
+}
+
+#[derive(Args)]
+struct ExportArgs {
+    /// Read bridge lines from a file.
+    #[arg(short, long)]
+    file: Option<PathBuf>,
+    /// Fetch bridge lines from a source transport instead of a file.
+    #[arg(long)]
+    source: Option<String>,
+    /// Source category (used with --source).
+    #[arg(long, value_enum, default_value_t = CategoryArg::Tested)]
+    category: CategoryArg,
+    /// Fetch the IPv6 list (used with --source).
+    #[arg(long)]
+    ipv6: bool,
+    /// Output format.
+    #[arg(long, value_enum, default_value_t = ExportFmt::Plain)]
+    format: ExportFmt,
+}
+
+#[derive(Copy, Clone, ValueEnum)]
+enum ExportFmt {
+    Plain,
+    Torrc,
+    Json,
+    /// SVG QR code (encodes the first bridge).
+    Qr,
 }
 
 #[derive(Args)]
@@ -122,6 +153,7 @@ async fn main() -> ExitCode {
         Command::Scan(args) => run_scan(args).await,
         Command::Sources(args) => run_sources(args).await,
         Command::History(args) => run_history(args),
+        Command::Export(args) => run_export(args).await,
     };
     match ok {
         Ok(true) => ExitCode::SUCCESS,
@@ -254,6 +286,50 @@ async fn load_source(
         .await
         .map(|result| result.lines)
         .map_err(|err| err.to_string())
+}
+
+async fn run_export(args: ExportArgs) -> io::Result<bool> {
+    let input = if let Some(path) = &args.file {
+        std::fs::read_to_string(path)?
+    } else if let Some(transport) = &args.source {
+        match load_source(transport, args.category.into(), args.ipv6).await {
+            Ok(lines) => lines.join("\n"),
+            Err(err) => {
+                eprintln!("source error: {err}");
+                return Ok(false);
+            }
+        }
+    } else {
+        let mut buf = String::new();
+        io::stdin().read_to_string(&mut buf)?;
+        buf
+    };
+
+    let bridges = parse_bridge_lines(input.lines());
+    let lines: Vec<String> = bridges.iter().map(|b| b.raw.clone()).collect();
+    if lines.is_empty() {
+        eprintln!("no bridges to export");
+        return Ok(false);
+    }
+
+    match args.format {
+        ExportFmt::Plain => println!("{}", export(&lines, ExportFormat::Plain)),
+        ExportFmt::Torrc => println!("{}", export(&lines, ExportFormat::Torrc)),
+        ExportFmt::Json => println!("{}", export(&lines, ExportFormat::Json)),
+        ExportFmt::Qr => match qr_svg(&lines[0]) {
+            Ok(svg) => {
+                println!("{svg}");
+                if lines.len() > 1 {
+                    eprintln!("note: QR encodes the first of {} bridges", lines.len());
+                }
+            }
+            Err(err) => {
+                eprintln!("error: {err}");
+                return Ok(false);
+            }
+        },
+    }
+    Ok(true)
 }
 
 fn run_history(args: HistoryArgs) -> io::Result<bool> {

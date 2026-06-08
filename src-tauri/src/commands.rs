@@ -2,6 +2,7 @@
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use bridgehop_core::io::{export, ExportFormat};
 use bridgehop_core::sources::{self, FetchResult, Selection};
 use bridgehop_core::store::{Reliability, RunMeta, RunSummary, Store};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, ScanOptions, ScanResult};
@@ -114,6 +115,18 @@ pub async fn reliability(limit: usize) -> Result<Vec<Reliability>, String> {
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Render bridge lines in the requested export format (plain / torrc / json).
+#[tauri::command]
+pub fn export_bridges(lines: Vec<String>, format: ExportFormat) -> String {
+    export(&lines, format)
+}
+
+/// Render a bridge line (or any text) as an SVG QR code for sharing.
+#[tauri::command]
+pub fn qr_svg(text: String) -> Result<String, String> {
+    bridgehop_core::io::qr_svg(&text).map_err(|err| err.to_string())
 }
 
 fn unix_now() -> u64 {

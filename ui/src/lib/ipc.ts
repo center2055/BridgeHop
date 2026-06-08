@@ -131,6 +131,18 @@ export async function reliability(limit = 200): Promise<Reliability[]> {
   return invoke<Reliability[]>('reliability', { limit });
 }
 
+export type ExportFormat = 'plain' | 'torrc' | 'json';
+
+/** Render bridge lines in the given export format. */
+export async function exportBridges(lines: string[], format: ExportFormat): Promise<string> {
+  return invoke<string>('export_bridges', { lines, format });
+}
+
+/** Render a bridge line as an SVG QR code. */
+export async function qrSvg(text: string): Promise<string> {
+  return invoke<string>('qr_svg', { text });
+}
+
 /** Request cancellation of the in-flight scan. */
 export async function cancelScan(): Promise<void> {
   await invoke('cancel_scan');

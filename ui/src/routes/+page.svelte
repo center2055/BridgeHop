@@ -6,12 +6,15 @@
     cancelScan,
     onScanProgress,
     fetchBridges,
+    exportBridges,
+    qrSvg,
     inTauri,
     SOURCE_TRANSPORTS,
     CATEGORIES,
     type ScanResult,
     type Reachability,
-    type Category
+    type Category,
+    type ExportFormat
   } from '$lib/ipc';
 
   const SAMPLE = `# Paste bridge lines here (one per line). Examples:
@@ -33,6 +36,10 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let loadingSource = $state(false);
   let sourceInfo = $state<string | null>(null);
   let loadedSource = $state<string | null>(null);
+
+  // QR modal
+  let qrOpen = $state(false);
+  let qrContent = $state('');
 
   const summary = $derived.by(() => {
     const s = { total: results.length, working: 0, reachable: 0, slow: 0, fronted: 0, unreachable: 0, unparsed: 0 };
@@ -118,6 +125,38 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       error = String(e);
     } finally {
       loadingSource = false;
+    }
+  }
+
+  function workingRaws(): string[] {
+    return results.filter((r) => r.reachability !== 'unreachable' && r.reachability !== 'unparsed').map((r) => r.raw);
+  }
+
+  async function copyExport(format: ExportFormat) {
+    const working = workingRaws();
+    if (working.length === 0) {
+      error = 'No working bridges to export.';
+      return;
+    }
+    try {
+      const text = inTauri() ? await exportBridges(working, format) : working.join('\n');
+      await navigator.clipboard.writeText(text);
+      sourceInfo = `Copied ${working.length} working bridge${working.length === 1 ? '' : 's'} (${format}) to clipboard`;
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function showQr(raw: string) {
+    if (!inTauri()) {
+      error = 'QR codes are only available in the desktop app.';
+      return;
+    }
+    try {
+      qrContent = await qrSvg(raw);
+      qrOpen = true;
+    } catch (e) {
+      error = String(e);
     }
   }
 
@@ -228,6 +267,13 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <div class="stat down"><span class="stat-value">{summary.unreachable}</span><span class="stat-label">unreachable</span></div>
   </section>
 
+  <div class="results-toolbar">
+    <span class="toolbar-label">Export working bridges</span>
+    <button class="btn small" onclick={() => copyExport('plain')}>Copy plain</button>
+    <button class="btn small" onclick={() => copyExport('torrc')}>Copy torrc</button>
+    <button class="btn small" onclick={() => copyExport('json')}>Copy JSON</button>
+  </div>
+
   <section class="card table-card">
     <table>
       <thead>
@@ -237,6 +283,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
           <th>Transport</th>
           <th>Endpoint</th>
           <th>Detail</th>
+          <th class="col-qr">QR</th>
         </tr>
       </thead>
       <tbody>
@@ -247,6 +294,9 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
             <td><span class="chip">{r.transport}</span></td>
             <td class="mono endpoint">{r.probed_host}:{r.probed_port}</td>
             <td class="detail">{r.detail}</td>
+            <td class="col-qr">
+              <button class="qr-btn" title="Show QR code" onclick={() => showQr(r.raw)}>QR</button>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -258,6 +308,21 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <p>Paste bridge lines above and hit <strong>Scan</strong> to see reachability results.</p>
   </section>
 {/if}
+
+{#if qrOpen}
+  <div class="qr-overlay">
+    <div class="qr-modal">
+      <!-- eslint-disable-next-line svelte/no-at-html-tags (trusted SVG from our own backend) -->
+      <div class="qr-svg">{@html qrContent}</div>
+      <button class="btn" onclick={() => (qrOpen = false)}>Close</button>
+    </div>
+  </div>
+{/if}
+
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === 'Escape') qrOpen = false;
+  }} />
 
 <style>
   .page-head {
@@ -412,6 +477,75 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   }
   .detail {
     color: var(--text-subtle);
+  }
+
+  .results-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 12px;
+  }
+  .toolbar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+  .btn.small {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
+  .col-qr {
+    width: 54px;
+    text-align: center;
+  }
+  .qr-btn {
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .qr-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  .qr-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: grid;
+    place-items: center;
+    z-index: 50;
+  }
+  .qr-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .qr-svg {
+    width: 260px;
+    height: 260px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    display: grid;
+    place-items: center;
+  }
+  .qr-svg :global(svg) {
+    width: 100%;
+    height: 100%;
   }
 
   .empty {

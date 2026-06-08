@@ -12,8 +12,8 @@ description = "Core engine for BridgeHop: Tor bridge parsing, reachability scann
 default = []
 # Desktop-only: launch real pluggable-transport clients to confirm a handshake.
 deep-verify = []
-# QR encode/decode for import/export.
-qr = []
+# QR encode for import/export sharing.
+qr = ["dep:qrcode"]
 # MaxMind GeoLite2 country/ASN lookups.
 geo = []
 
@@ -27,6 +27,8 @@ once_cell = { workspace = true }
 directories = { workspace = true }
 rusqlite = { workspace = true }
 reqwest = { workspace = true }
+# SVG QR rendering only (no image backend) to stay light; enabled by the `qr` feature.
+qrcode = { version = "0.14", default-features = false, features = ["svg"], optional = true }
 tokio = { workspace = true }
 tokio-util = "0.7"
 # Pure-Rust TLS via the ring provider (no aws-lc-rs C build) — smaller binary, simpler builds.
