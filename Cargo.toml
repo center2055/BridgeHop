@@ -3,7 +3,13 @@ resolver = "2"
 members = [
     "crates/bridgehop-core",
     "crates/bridgehop-cli",
-    # src-tauri is added in a later commit once the front end is in place.
+    "src-tauri",
+]
+# Plain `cargo build`/`test`/`clippy` target the library and CLI, which don't need the built
+# front end. The Tauri app is built explicitly (it embeds ui/build) via `cargo build -p bridgehop-app`.
+default-members = [
+    "crates/bridgehop-core",
+    "crates/bridgehop-cli",
 ]
 
 [workspace.package]
