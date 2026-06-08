@@ -187,7 +187,7 @@ async fn run_sources(args: SourcesArgs) -> io::Result<bool> {
         category: args.category.into(),
         ipv6: args.ipv6,
     };
-    match sources::fetch(&selection, &client).await {
+    match sources::fetch_with_cache(&selection, &client).await {
         Ok(result) => {
             match args.format {
                 SourcesFormat::Lines => {
@@ -221,7 +221,7 @@ async fn load_source(
         category,
         ipv6,
     };
-    sources::fetch(&selection, &client)
+    sources::fetch_with_cache(&selection, &client)
         .await
         .map(|result| result.lines)
         .map_err(|err| err.to_string())

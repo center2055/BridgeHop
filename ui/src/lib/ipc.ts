@@ -50,6 +50,7 @@ export interface Selection {
 export interface FetchResult {
   lines: string[];
   source: string;
+  stale?: boolean;
 }
 
 export const SOURCE_TRANSPORTS = [

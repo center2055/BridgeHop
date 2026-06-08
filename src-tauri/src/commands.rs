@@ -64,7 +64,7 @@ pub fn cancel_scan(state: State<'_, AppState>) {
 #[tauri::command]
 pub async fn fetch_bridges(selection: Selection) -> Result<FetchResult, String> {
     let client = sources::http_client();
-    sources::fetch(&selection, &client)
+    sources::fetch_with_cache(&selection, &client)
         .await
         .map_err(|err| err.to_string())
 }

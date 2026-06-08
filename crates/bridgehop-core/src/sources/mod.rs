@@ -6,6 +6,7 @@
 //! transport plus the built-in pools.
 
 pub mod builtin;
+mod cache;
 
 use std::collections::HashSet;
 use std::time::Duration;
@@ -76,11 +77,14 @@ impl Default for Selection {
     }
 }
 
-/// The outcome of a fetch: the bridge lines and a human-readable source label.
+/// The outcome of a fetch: the bridge lines, a human-readable source label, and whether the
+/// lines came from a stale cache (network unavailable).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FetchResult {
     pub lines: Vec<String>,
     pub source: String,
+    #[serde(default)]
+    pub stale: bool,
 }
 
 /// Build a shared HTTP client (rustls, sensible timeout, BridgeHop user agent).
@@ -114,6 +118,7 @@ pub async fn fetch(selection: &Selection, client: &reqwest::Client) -> Result<Fe
             return Ok(FetchResult {
                 lines: lines.iter().map(|s| s.to_string()).collect(),
                 source: format!("built-in:{transport}"),
+                stale: false,
             });
         }
     }
@@ -142,7 +147,11 @@ async fn fetch_collector(
         };
         let lines = parse_lines(&body);
         if !lines.is_empty() {
-            return Ok(FetchResult { lines, source: url });
+            return Ok(FetchResult {
+                lines,
+                source: url,
+                stale: false,
+            });
         }
     }
     Err(Error::Network(format!(
@@ -181,7 +190,46 @@ async fn fetch_all(
     Ok(FetchResult {
         lines: deduped,
         source: format!("all:{}", sources.join("+")),
+        stale: false,
     })
+}
+
+/// Fetch with an on-disk cache: a successful fetch refreshes the cache; a failed fetch falls back
+/// to the most recent cached lines (marked `stale`) so bridges remain available offline.
+pub async fn fetch_with_cache(
+    selection: &Selection,
+    client: &reqwest::Client,
+) -> Result<FetchResult> {
+    let key = cache_key(selection);
+    match fetch(selection, client).await {
+        Ok(result) => {
+            cache::put(&key, &result.lines);
+            Ok(result)
+        }
+        Err(err) => match cache::get(&key) {
+            Some(entry) if !entry.lines.is_empty() => Ok(FetchResult {
+                lines: entry.lines,
+                source: format!("cache:{}", selection.transport),
+                stale: true,
+            }),
+            _ => Err(err),
+        },
+    }
+}
+
+/// Stable cache key for a selection.
+fn cache_key(selection: &Selection) -> String {
+    let category = match selection.category {
+        Category::Tested => "tested",
+        Category::Fresh72h => "fresh72h",
+        Category::FullArchive => "full",
+    };
+    format!(
+        "{}|{}|{}",
+        selection.transport.trim().to_ascii_lowercase(),
+        category,
+        selection.ipv6
+    )
 }
 
 /// Split fetched text into trimmed, comment-free, case-insensitively-deduplicated lines.

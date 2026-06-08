@@ -110,7 +110,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         ipv6: sourceIpv6
       });
       linesText = result.lines.join('\n');
-      sourceInfo = `Loaded ${result.lines.length} bridge${result.lines.length === 1 ? '' : 's'} from ${result.source}`;
+      const cached = result.stale ? ' (cached — network unavailable)' : '';
+      sourceInfo = `Loaded ${result.lines.length} bridge${result.lines.length === 1 ? '' : 's'} from ${result.source}${cached}`;
     } catch (e) {
       error = String(e);
     } finally {
