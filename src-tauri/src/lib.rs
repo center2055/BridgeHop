@@ -14,7 +14,8 @@ pub fn run() {
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::start_scan,
-            commands::cancel_scan
+            commands::cancel_scan,
+            commands::fetch_bridges
         ])
         .run(tauri::generate_context!())
         .expect("error while running BridgeHop");

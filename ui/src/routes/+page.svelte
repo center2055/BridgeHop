@@ -5,9 +5,13 @@
     startScan,
     cancelScan,
     onScanProgress,
+    fetchBridges,
     inTauri,
+    SOURCE_TRANSPORTS,
+    CATEGORIES,
     type ScanResult,
-    type Reachability
+    type Reachability,
+    type Category
   } from '$lib/ipc';
 
   const SAMPLE = `# Paste bridge lines here (one per line). Examples:
@@ -21,6 +25,13 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let results = $state<ScanResult[]>([]);
   let error = $state<string | null>(null);
   let unlisten: (() => void) | null = null;
+
+  // Source loading
+  let sourceTransport = $state('all');
+  let sourceCategory = $state<Category>('tested');
+  let sourceIpv6 = $state(false);
+  let loadingSource = $state(false);
+  let sourceInfo = $state<string | null>(null);
 
   const summary = $derived.by(() => {
     const s = { total: results.length, working: 0, reachable: 0, slow: 0, fronted: 0, unreachable: 0, unparsed: 0 };
@@ -83,6 +94,30 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     }
   }
 
+  async function loadFromSource() {
+    if (loadingSource) return;
+    if (!inTauri()) {
+      error = 'Loading sources is only available in the desktop app.';
+      return;
+    }
+    loadingSource = true;
+    error = null;
+    sourceInfo = null;
+    try {
+      const result = await fetchBridges({
+        transport: sourceTransport,
+        category: sourceCategory,
+        ipv6: sourceIpv6
+      });
+      linesText = result.lines.join('\n');
+      sourceInfo = `Loaded ${result.lines.length} bridge${result.lines.length === 1 ? '' : 's'} from ${result.source}`;
+    } catch (e) {
+      error = String(e);
+    } finally {
+      loadingSource = false;
+    }
+  }
+
   function badgeClass(r: Reachability): string {
     switch (r) {
       case 'reachable': return 'badge badge-ok';
@@ -112,6 +147,35 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 </header>
 
 <section class="card controls">
+  <div class="source-row">
+    <div class="field">
+      <label for="src-transport">Source</label>
+      <select id="src-transport" class="input" bind:value={sourceTransport}>
+        {#each SOURCE_TRANSPORTS as t (t)}
+          <option value={t}>{t}</option>
+        {/each}
+      </select>
+    </div>
+    <div class="field">
+      <label for="src-category">Category</label>
+      <select id="src-category" class="input" bind:value={sourceCategory}>
+        {#each CATEGORIES as c (c.value)}
+          <option value={c.value}>{c.label}</option>
+        {/each}
+      </select>
+    </div>
+    <label class="checkbox" title="Fetch the IPv6 list (collector transports only)">
+      <input type="checkbox" bind:checked={sourceIpv6} /> IPv6
+    </label>
+    <button class="btn" onclick={loadFromSource} disabled={loadingSource}>
+      <Icon name="library" size={15} />
+      {loadingSource ? 'Loading…' : 'Load bridges'}
+    </button>
+    {#if sourceInfo}
+      <span class="source-info">{sourceInfo}</span>
+    {/if}
+  </div>
+
   <div class="controls-grid">
     <div class="field bridges-field">
       <label for="bridges">Bridge lines</label>
@@ -200,6 +264,37 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
   .controls {
     padding: 18px;
+  }
+  .source-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .source-row .field {
+    min-width: 150px;
+  }
+  .source-row select.input {
+    height: 38px;
+  }
+  .checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .source-info {
+    font-size: 12.5px;
+    color: var(--text-subtle);
+    margin-left: auto;
+    align-self: center;
   }
   .controls-grid {
     display: grid;

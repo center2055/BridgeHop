@@ -39,6 +39,41 @@ export interface ScanRequest {
   deep?: boolean;
 }
 
+export type Category = 'tested' | 'fresh72h' | 'full_archive';
+
+export interface Selection {
+  transport: string;
+  category: Category;
+  ipv6: boolean;
+}
+
+export interface FetchResult {
+  lines: string[];
+  source: string;
+}
+
+export const SOURCE_TRANSPORTS = [
+  'all',
+  'obfs4',
+  'webtunnel',
+  'vanilla',
+  'snowflake',
+  'meek-azure',
+  'conjure',
+  'dnstt'
+] as const;
+
+export const CATEGORIES: { value: Category; label: string }[] = [
+  { value: 'tested', label: 'Tested & Active' },
+  { value: 'fresh72h', label: 'Fresh (72h)' },
+  { value: 'full_archive', label: 'Full Archive' }
+];
+
+/** Fetch bridge lines from a source (collector mirror or built-in defaults). */
+export async function fetchBridges(selection: Selection): Promise<FetchResult> {
+  return invoke<FetchResult>('fetch_bridges', { selection });
+}
+
 /** True when running inside the Tauri runtime (vs. a plain browser dev preview). */
 export function inTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;

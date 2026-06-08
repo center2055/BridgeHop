@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use bridgehop_core::sources::{self, FetchResult, Selection};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, ScanOptions, ScanResult};
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, State};
@@ -57,4 +58,13 @@ pub async fn start_scan(
 #[tauri::command]
 pub fn cancel_scan(state: State<'_, AppState>) {
     state.cancel();
+}
+
+/// Fetch bridge lines from a source (collector mirror or built-in defaults).
+#[tauri::command]
+pub async fn fetch_bridges(selection: Selection) -> Result<FetchResult, String> {
+    let client = sources::http_client();
+    sources::fetch(&selection, &client)
+        .await
+        .map_err(|err| err.to_string())
 }
