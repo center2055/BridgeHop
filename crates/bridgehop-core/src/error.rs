@@ -24,6 +24,10 @@ pub enum Error {
     #[error("serialization error: {0}")]
     Json(#[from] serde_json::Error),
 
+    /// A persistence/database failure.
+    #[error("database error: {0}")]
+    Db(#[from] rusqlite::Error),
+
     /// Any other error with a human-readable message.
     #[error("{0}")]
     Other(String),

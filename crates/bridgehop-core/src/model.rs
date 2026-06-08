@@ -160,6 +160,27 @@ pub enum Reachability {
     Fronted,
 }
 
+impl Reachability {
+    /// Lowercase token used for storage and display.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Reachability::Reachable => "reachable",
+            Reachability::Slow => "slow",
+            Reachability::Unreachable => "unreachable",
+            Reachability::Unparsed => "unparsed",
+            Reachability::Fronted => "fronted",
+        }
+    }
+
+    /// Whether this outcome counts as a usable bridge.
+    pub fn is_working(self) -> bool {
+        matches!(
+            self,
+            Reachability::Reachable | Reachability::Slow | Reachability::Fronted
+        )
+    }
+}
+
 /// Result of an optional deep (real pluggable-transport handshake) verification.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DeepResult {
@@ -198,10 +219,7 @@ pub struct ScanResult {
 impl ScanResult {
     /// `true` if the bridge is usable: reachable, slow-but-reachable, or a responding front.
     pub fn is_working(&self) -> bool {
-        matches!(
-            self.reachability,
-            Reachability::Reachable | Reachability::Slow | Reachability::Fronted
-        )
+        self.reachability.is_working()
     }
 }
 

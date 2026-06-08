@@ -11,6 +11,7 @@ pub mod parse;
 pub mod paths;
 pub mod scan;
 pub mod sources;
+pub mod store;
 
 pub use error::{Error, Result};
 pub use model::{Bridge, Endpoint, Reachability, ScanResult, Transport, SLOW_THRESHOLD_MS};
