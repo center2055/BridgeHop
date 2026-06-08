@@ -37,6 +37,34 @@ export interface ScanRequest {
   workers: number;
   timeoutMs: number;
   deep?: boolean;
+  source?: string;
+}
+
+export interface RunSummary {
+  id: number;
+  started_unix: number;
+  finished_unix: number;
+  source: string;
+  transport_filter: string;
+  deep: boolean;
+  total: number;
+  reachable: number;
+  slow: number;
+  fronted: number;
+  unreachable: number;
+  unparsed: number;
+}
+
+export interface Reliability {
+  bridge_id: string;
+  raw: string;
+  transport: string;
+  country: string | null;
+  asn: number | null;
+  uptime: number;
+  probes: number;
+  avg_ms: number | null;
+  last_unix: number;
 }
 
 export type Category = 'tested' | 'fresh72h' | 'full_archive';
@@ -87,9 +115,20 @@ export async function startScan(request: ScanRequest): Promise<ScanResult[]> {
       lines: request.lines,
       workers: request.workers,
       timeout_ms: request.timeoutMs,
-      deep: request.deep ?? false
+      deep: request.deep ?? false,
+      source: request.source ?? null
     }
   });
+}
+
+/** List recent scan runs (newest first). */
+export async function listRuns(limit = 50): Promise<RunSummary[]> {
+  return invoke<RunSummary[]>('list_runs', { limit });
+}
+
+/** Per-bridge reliability leaderboard across all recorded scans. */
+export async function reliability(limit = 200): Promise<Reliability[]> {
+  return invoke<Reliability[]>('reliability', { limit });
 }
 
 /** Request cancellation of the in-flight scan. */

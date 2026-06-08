@@ -9,6 +9,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use bridgehop_core::sources::{self, Category as SrcCategory, Selection};
+use bridgehop_core::store::{RunMeta, Store};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, Reachability, ScanOptions, ScanResult};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use tokio::sync::mpsc;
@@ -27,6 +28,18 @@ enum Command {
     Scan(ScanArgs),
     /// Fetch bridge lines from a source (collector mirror or built-in defaults).
     Sources(SourcesArgs),
+    /// Show recorded scan history and per-bridge reliability.
+    History(HistoryArgs),
+}
+
+#[derive(Args)]
+struct HistoryArgs {
+    /// Show the per-bridge reliability leaderboard instead of the run list.
+    #[arg(long)]
+    reliability: bool,
+    /// Maximum rows to show.
+    #[arg(long, default_value_t = 30)]
+    limit: usize,
 }
 
 #[derive(Args)]
@@ -108,6 +121,7 @@ async fn main() -> ExitCode {
     let ok = match cli.command {
         Command::Scan(args) => run_scan(args).await,
         Command::Sources(args) => run_sources(args).await,
+        Command::History(args) => run_history(args),
     };
     match ok {
         Ok(true) => ExitCode::SUCCESS,
@@ -148,11 +162,13 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
         timeout: Duration::from_millis(args.timeout),
         deep: false,
     };
+    let started_unix = unix_now();
+    let source = args.source.clone().unwrap_or_else(|| "manual".to_string());
     let (tx, mut rx) = mpsc::channel(64);
     let cancel = CancellationToken::new();
     let handle = tokio::spawn(async move { scan_bridges(bridges, options, tx, cancel).await });
 
-    let any_working = match args.format {
+    let results = match args.format {
         OutputFormat::Table => {
             print_table_header();
             while let Some(result) = rx.recv().await {
@@ -160,18 +176,31 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
             }
             let results = handle.await.expect("scan task panicked");
             print_summary(&results, total);
-            results.iter().any(ScanResult::is_working)
+            results
         }
         OutputFormat::Json => {
             while rx.recv().await.is_some() {}
             let results = handle.await.expect("scan task panicked");
             let json = serde_json::to_string_pretty(&results).expect("results serialize");
             println!("{json}");
-            results.iter().any(ScanResult::is_working)
+            results
         }
     };
 
-    Ok(any_working)
+    // Record the run in the shared database so it shows up in the app's history.
+    if !results.is_empty() {
+        if let Ok(mut store) = Store::open() {
+            let meta = RunMeta {
+                started_unix,
+                source,
+                transport_filter: String::new(),
+                deep: false,
+            };
+            let _ = store.record_run(&meta, &results);
+        }
+    }
+
+    Ok(results.iter().any(ScanResult::is_working))
 }
 
 async fn run_sources(args: SourcesArgs) -> io::Result<bool> {
@@ -225,6 +254,106 @@ async fn load_source(
         .await
         .map(|result| result.lines)
         .map_err(|err| err.to_string())
+}
+
+fn run_history(args: HistoryArgs) -> io::Result<bool> {
+    let store = match Store::open() {
+        Ok(store) => store,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return Ok(false);
+        }
+    };
+
+    if args.reliability {
+        let rows = match store.reliability(args.limit) {
+            Ok(rows) => rows,
+            Err(err) => {
+                eprintln!("error: {err}");
+                return Ok(false);
+            }
+        };
+        if rows.is_empty() {
+            eprintln!("no reliability data yet — run a scan first");
+            return Ok(false);
+        }
+        println!(
+            "{:<11} {:>7} {:>7} {:>9}  BRIDGE",
+            "TRANSPORT", "UPTIME", "PROBES", "AVG"
+        );
+        for r in &rows {
+            let avg = r
+                .avg_ms
+                .map(|m| format!("{m:.0} ms"))
+                .unwrap_or_else(|| "-".to_string());
+            println!(
+                "{:<11} {:>6.0}% {:>7} {:>9}  {}",
+                r.transport,
+                r.uptime * 100.0,
+                r.probes,
+                avg,
+                truncate(&r.raw, 60)
+            );
+        }
+        return Ok(true);
+    }
+
+    let runs = match store.list_runs(args.limit) {
+        Ok(runs) => runs,
+        Err(err) => {
+            eprintln!("error: {err}");
+            return Ok(false);
+        }
+    };
+    if runs.is_empty() {
+        eprintln!("no scan runs recorded yet");
+        return Ok(false);
+    }
+    println!(
+        "{:>5} {:<12} {:>6} {:>8} {:>6}  SOURCE",
+        "RUN", "WHEN", "TOTAL", "WORKING", "DOWN"
+    );
+    for r in &runs {
+        let working = r.reachable + r.slow + r.fronted;
+        println!(
+            "{:>5} {:<12} {:>6} {:>8} {:>6}  {}",
+            r.id,
+            ago(r.started_unix),
+            r.total,
+            working,
+            r.unreachable,
+            truncate(&r.source, 50)
+        );
+    }
+    Ok(true)
+}
+
+fn truncate(text: &str, max: usize) -> String {
+    if text.chars().count() > max {
+        format!("{}…", text.chars().take(max).collect::<String>())
+    } else {
+        text.to_string()
+    }
+}
+
+fn unix_now() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+fn ago(unix: u64) -> String {
+    let secs = unix_now().saturating_sub(unix);
+    if secs < 60 {
+        format!("{secs}s ago")
+    } else if secs < 3600 {
+        format!("{}m ago", secs / 60)
+    } else if secs < 86_400 {
+        format!("{}h ago", secs / 3600)
+    } else {
+        format!("{}d ago", secs / 86_400)
+    }
 }
 
 fn print_table_header() {

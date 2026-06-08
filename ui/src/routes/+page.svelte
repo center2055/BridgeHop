@@ -32,6 +32,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let sourceIpv6 = $state(false);
   let loadingSource = $state(false);
   let sourceInfo = $state<string | null>(null);
+  let loadedSource = $state<string | null>(null);
 
   const summary = $derived.by(() => {
     const s = { total: results.length, working: 0, reachable: 0, slow: 0, fronted: 0, unreachable: 0, unparsed: 0 };
@@ -78,7 +79,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     results = [];
     scanning = true;
     try {
-      await startScan({ lines, workers, timeoutMs });
+      await startScan({ lines, workers, timeoutMs, source: loadedSource ?? 'manual' });
     } catch (e) {
       error = String(e);
     } finally {
@@ -110,6 +111,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         ipv6: sourceIpv6
       });
       linesText = result.lines.join('\n');
+      loadedSource = result.source;
       const cached = result.stale ? ' (cached — network unavailable)' : '';
       sourceInfo = `Loaded ${result.lines.length} bridge${result.lines.length === 1 ? '' : 's'} from ${result.source}${cached}`;
     } catch (e) {
@@ -180,7 +182,13 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   <div class="controls-grid">
     <div class="field bridges-field">
       <label for="bridges">Bridge lines</label>
-      <textarea id="bridges" class="textarea" rows="9" spellcheck="false" bind:value={linesText}></textarea>
+      <textarea
+        id="bridges"
+        class="textarea"
+        rows="9"
+        spellcheck="false"
+        bind:value={linesText}
+        oninput={() => (loadedSource = null)}></textarea>
     </div>
 
     <div class="settings">
