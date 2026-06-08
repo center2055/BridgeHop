@@ -49,15 +49,26 @@ pub async fn start_scan(
 
     let (tx, mut rx) = mpsc::channel::<ScanResult>(64);
     let emitter = app.clone();
+    // Load geo databases once (if present) and enrich each streamed result before emitting.
+    let geo_db = std::sync::Arc::new(bridgehop_core::geo::GeoDb::open());
+    let geo_for_forward = std::sync::Arc::clone(&geo_db);
     let forward = tokio::spawn(async move {
-        while let Some(result) = rx.recv().await {
+        while let Some(mut result) = rx.recv().await {
+            if geo_for_forward.is_available() {
+                if let Ok(ip) = result.probed_host.parse::<std::net::IpAddr>() {
+                    result.geo = Some(geo_for_forward.lookup(ip));
+                }
+            }
             let _ = emitter.emit("scan-progress", &result);
         }
     });
 
-    let results = scan_bridges(bridges, options, tx, cancel).await;
+    let mut results = scan_bridges(bridges, options, tx, cancel).await;
     let _ = forward.await;
     state.finish();
+
+    // Enrich the returned set too (used for persistence and the command return value).
+    bridgehop_core::geo::enrich(&mut results, geo_db.as_ref());
 
     // Persist the run (best-effort; never fail the scan because storage hiccuped).
     if !results.is_empty() {
@@ -127,6 +138,23 @@ pub fn export_bridges(lines: Vec<String>, format: ExportFormat) -> String {
 #[tauri::command]
 pub fn qr_svg(text: String) -> Result<String, String> {
     bridgehop_core::io::qr_svg(&text).map_err(|err| err.to_string())
+}
+
+/// Status of the optional GeoLite2 databases.
+#[derive(serde::Serialize)]
+pub struct GeoStatus {
+    pub available: bool,
+    pub dir: String,
+}
+
+/// Report whether GeoLite2 databases are present and where BridgeHop looks for them.
+#[tauri::command]
+pub fn geo_status() -> GeoStatus {
+    let db = bridgehop_core::geo::GeoDb::open();
+    GeoStatus {
+        available: db.is_available(),
+        dir: bridgehop_core::geo::GeoDb::geo_dir().display().to_string(),
+    }
 }
 
 fn unix_now() -> u64 {

@@ -143,6 +143,16 @@ export async function qrSvg(text: string): Promise<string> {
   return invoke<string>('qr_svg', { text });
 }
 
+export interface GeoStatus {
+  available: boolean;
+  dir: string;
+}
+
+/** Whether the optional GeoLite2 databases are present, and where BridgeHop looks for them. */
+export async function geoStatus(): Promise<GeoStatus> {
+  return invoke<GeoStatus>('geo_status');
+}
+
 /** Request cancellation of the in-flight scan. */
 export async function cancelScan(): Promise<void> {
   await invoke('cancel_scan');

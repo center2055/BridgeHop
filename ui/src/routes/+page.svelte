@@ -170,6 +170,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     }
   }
 
+  function flag(code: string | null | undefined): string {
+    if (!code || code.length !== 2) return '';
+    const base = 'A'.charCodeAt(0);
+    const a = 0x1f1e6 + (code.toUpperCase().charCodeAt(0) - base);
+    const b = 0x1f1e6 + (code.toUpperCase().charCodeAt(1) - base);
+    return String.fromCodePoint(a, b);
+  }
+
   function badgeLabel(r: Reachability): string {
     switch (r) {
       case 'reachable': return 'OK';
@@ -282,6 +290,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
           <th class="col-ping">Ping</th>
           <th>Transport</th>
           <th>Endpoint</th>
+          <th class="col-geo">Country</th>
+          <th class="col-asn">ASN</th>
           <th>Detail</th>
           <th class="col-qr">QR</th>
         </tr>
@@ -293,6 +303,12 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
             <td class="col-ping mono">{r.ping_ms != null ? `${r.ping_ms} ms` : '—'}</td>
             <td><span class="chip">{r.transport}</span></td>
             <td class="mono endpoint">{r.probed_host}:{r.probed_port}</td>
+            <td class="col-geo">
+              {#if r.geo?.country}{flag(r.geo.country)} {r.geo.country}{:else}<span class="muted">—</span>{/if}
+            </td>
+            <td class="col-asn" title={r.geo?.as_org ?? ''}>
+              {#if r.geo?.asn}AS{r.geo.asn}{:else}<span class="muted">—</span>{/if}
+            </td>
             <td class="detail">{r.detail}</td>
             <td class="col-qr">
               <button class="qr-btn" title="Show QR code" onclick={() => showQr(r.raw)}>QR</button>
@@ -476,6 +492,16 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     color: var(--text-muted);
   }
   .detail {
+    color: var(--text-subtle);
+  }
+  .col-geo {
+    width: 96px;
+  }
+  .col-asn {
+    width: 96px;
+    color: var(--text-muted);
+  }
+  .muted {
     color: var(--text-subtle);
   }
 

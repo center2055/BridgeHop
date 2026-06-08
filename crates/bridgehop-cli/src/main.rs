@@ -8,6 +8,9 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 
+use std::net::IpAddr;
+
+use bridgehop_core::geo::GeoDb;
 use bridgehop_core::io::{export, qr_svg, ExportFormat};
 use bridgehop_core::sources::{self, Category as SrcCategory, Selection};
 use bridgehop_core::store::{RunMeta, Store};
@@ -33,6 +36,14 @@ enum Command {
     History(HistoryArgs),
     /// Convert/export bridge lines (plain, torrc, JSON, or a QR code).
     Export(ExportArgs),
+    /// Look up country and ASN for an IP address (requires a GeoLite2 database).
+    Geo(GeoArgs),
+}
+
+#[derive(Args)]
+struct GeoArgs {
+    /// IP address to look up.
+    ip: String,
 }
 
 #[derive(Args)]
@@ -93,6 +104,9 @@ struct ScanArgs {
     /// Per-probe timeout in milliseconds.
     #[arg(short, long, default_value_t = 3000)]
     timeout: u64,
+    /// Annotate results with country/ASN from a local GeoLite2 database.
+    #[arg(long)]
+    geo: bool,
     /// Output format.
     #[arg(long, value_enum, default_value_t = OutputFormat::Table)]
     format: OutputFormat,
@@ -154,6 +168,7 @@ async fn main() -> ExitCode {
         Command::Sources(args) => run_sources(args).await,
         Command::History(args) => run_history(args),
         Command::Export(args) => run_export(args).await,
+        Command::Geo(args) => run_geo(args),
     };
     match ok {
         Ok(true) => ExitCode::SUCCESS,
@@ -200,10 +215,13 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
     let cancel = CancellationToken::new();
     let handle = tokio::spawn(async move { scan_bridges(bridges, options, tx, cancel).await });
 
-    let results = match args.format {
+    let geo_db = if args.geo { Some(GeoDb::open()) } else { None };
+
+    let mut results = match args.format {
         OutputFormat::Table => {
             print_table_header();
-            while let Some(result) = rx.recv().await {
+            while let Some(mut result) = rx.recv().await {
+                geo_annotate(&mut result, geo_db.as_ref());
                 print_row(&result);
             }
             let results = handle.await.expect("scan task panicked");
@@ -218,6 +236,10 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
             results
         }
     };
+
+    if let Some(db) = &geo_db {
+        bridgehop_core::geo::enrich(&mut results, db);
+    }
 
     // Record the run in the shared database so it shows up in the app's history.
     if !results.is_empty() {
@@ -432,10 +454,55 @@ fn ago(unix: u64) -> String {
     }
 }
 
+fn geo_annotate(result: &mut ScanResult, db: Option<&GeoDb>) {
+    if let Some(db) = db {
+        if db.is_available() {
+            if let Ok(ip) = result.probed_host.parse::<IpAddr>() {
+                result.geo = Some(db.lookup(ip));
+            }
+        }
+    }
+}
+
+fn run_geo(args: GeoArgs) -> io::Result<bool> {
+    let db = GeoDb::open();
+    if !db.is_available() {
+        eprintln!(
+            "no GeoLite2 database found in {}",
+            GeoDb::geo_dir().display()
+        );
+        return Ok(false);
+    }
+    let ip: IpAddr = match args.ip.parse() {
+        Ok(ip) => ip,
+        Err(_) => {
+            eprintln!("invalid IP address: {}", args.ip);
+            return Ok(false);
+        }
+    };
+    let info = db.lookup(ip);
+    println!("IP:      {ip}");
+    println!(
+        "Country: {}",
+        info.country.unwrap_or_else(|| "-".to_string())
+    );
+    println!(
+        "ASN:     {}",
+        info.asn
+            .map(|a| format!("AS{a}"))
+            .unwrap_or_else(|| "-".to_string())
+    );
+    println!(
+        "Org:     {}",
+        info.as_org.unwrap_or_else(|| "-".to_string())
+    );
+    Ok(true)
+}
+
 fn print_table_header() {
     println!(
-        "{:<7} {:>8} {:<11} {:<30} DETAIL",
-        "STATUS", "PING", "TRANSPORT", "HOST:PORT"
+        "{:<7} {:>8} {:<11} {:<24} {:<3} DETAIL",
+        "STATUS", "PING", "TRANSPORT", "HOST:PORT", "CC"
     );
 }
 
@@ -445,12 +512,18 @@ fn print_row(result: &ScanResult) {
         .ping_ms
         .map(|ms| format!("{ms} ms"))
         .unwrap_or_else(|| "-".to_string());
+    let cc = result
+        .geo
+        .as_ref()
+        .and_then(|g| g.country.clone())
+        .unwrap_or_else(|| "-".to_string());
     println!(
-        "{:<7} {:>8} {:<11} {:<30} {}",
+        "{:<7} {:>8} {:<11} {:<24} {:<3} {}",
         status_label(result.reachability),
         ping,
         result.transport.token(),
         host_port,
+        cc,
         result.detail
     );
 }

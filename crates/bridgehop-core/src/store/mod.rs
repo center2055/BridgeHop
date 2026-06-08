@@ -172,12 +172,15 @@ impl Store {
 
         {
             let mut upsert_bridge = tx.prepare(
-                "INSERT INTO bridge (id, raw, transport, host, port, fingerprint, front_host, params_json, first_seen, last_seen, source) \
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, ?10) \
+                "INSERT INTO bridge (id, raw, transport, host, port, fingerprint, front_host, params_json, country, asn, as_org, first_seen, last_seen, source) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?12, ?13) \
                  ON CONFLICT(id) DO UPDATE SET last_seen = excluded.last_seen, raw = excluded.raw, \
                  transport = excluded.transport, host = excluded.host, port = excluded.port, \
                  fingerprint = excluded.fingerprint, front_host = excluded.front_host, \
-                 params_json = excluded.params_json",
+                 params_json = excluded.params_json, \
+                 country = COALESCE(excluded.country, country), \
+                 asn = COALESCE(excluded.asn, asn), \
+                 as_org = COALESCE(excluded.as_org, as_org)",
             )?;
             let mut insert_result = tx.prepare(
                 "INSERT INTO scan_result \
@@ -192,6 +195,10 @@ impl Store {
                 let params_json = parsed
                     .as_ref()
                     .and_then(|b| serde_json::to_string(&b.params).ok());
+                let (country, asn, as_org) = match &r.geo {
+                    Some(g) => (g.country.clone(), g.asn.map(|a| a as i64), g.as_org.clone()),
+                    None => (None, None, None),
+                };
 
                 upsert_bridge.execute(params![
                     r.bridge_id,
@@ -202,6 +209,9 @@ impl Store {
                     fingerprint,
                     front_host,
                     params_json,
+                    country,
+                    asn,
+                    as_org,
                     now,
                     meta.source,
                 ])?;
