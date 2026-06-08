@@ -24,6 +24,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let linesText = $state(SAMPLE);
   let workers = $state(16);
   let timeoutMs = $state(3000);
+  let deepVerify = $state(false);
   let scanning = $state(false);
   let results = $state<ScanResult[]>([]);
   let error = $state<string | null>(null);
@@ -86,7 +87,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     results = [];
     scanning = true;
     try {
-      await startScan({ lines, workers, timeoutMs, source: loadedSource ?? 'manual' });
+      await startScan({ lines, workers, timeoutMs, deep: deepVerify, source: loadedSource ?? 'manual' });
     } catch (e) {
       error = String(e);
     } finally {
@@ -247,6 +248,9 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         <label for="timeout">Timeout (ms)</label>
         <input id="timeout" class="input" type="number" min="500" max="60000" step="500" bind:value={timeoutMs} />
       </div>
+      <label class="checkbox deep-toggle" title="Launch the real obfs4 client to confirm an actual handshake (desktop; requires the PT binary or Tor Browser)">
+        <input type="checkbox" bind:checked={deepVerify} /> Deep verify (obfs4)
+      </label>
       <div class="actions">
         {#if scanning}
           <button class="btn btn-danger" onclick={stopScan}>
@@ -309,7 +313,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
             <td class="col-asn" title={r.geo?.as_org ?? ''}>
               {#if r.geo?.asn}AS{r.geo.asn}{:else}<span class="muted">—</span>{/if}
             </td>
-            <td class="detail">{r.detail}</td>
+            <td class="detail">
+              {r.detail}
+              {#if r.deep}
+                <span class="deep-badge" class:ok={r.deep.ok} title={r.deep.detail}>
+                  {r.deep.ok ? 'deep ✓' : 'deep ✗'}
+                </span>
+              {/if}
+            </td>
             <td class="col-qr">
               <button class="qr-btn" title="Show QR code" onclick={() => showQr(r.raw)}>QR</button>
             </td>
@@ -503,6 +514,20 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   }
   .muted {
     color: var(--text-subtle);
+  }
+  .deep-badge {
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--down-soft);
+    color: var(--down);
+    white-space: nowrap;
+  }
+  .deep-badge.ok {
+    background: var(--ok-soft);
+    color: var(--ok);
   }
 
   .results-toolbar {

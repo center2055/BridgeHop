@@ -17,7 +17,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-bridgehop-core = { workspace = true, features = ["qr", "geo"] }
+bridgehop-core = { workspace = true, features = ["qr", "geo", "deep-verify"] }
 serde = { workspace = true }
 tauri = { version = "2", features = [] }
 tokio = { workspace = true }

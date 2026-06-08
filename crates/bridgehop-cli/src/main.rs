@@ -107,6 +107,9 @@ struct ScanArgs {
     /// Annotate results with country/ASN from a local GeoLite2 database.
     #[arg(long)]
     geo: bool,
+    /// Deep-verify working bridges by launching the real pluggable-transport client (obfs4).
+    #[arg(long)]
+    deep: bool,
     /// Output format.
     #[arg(long, value_enum, default_value_t = OutputFormat::Table)]
     format: OutputFormat,
@@ -207,7 +210,7 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
     let options = ScanOptions {
         workers: args.workers,
         timeout: Duration::from_millis(args.timeout),
-        deep: false,
+        deep: args.deep,
     };
     let started_unix = unix_now();
     let source = args.source.clone().unwrap_or_else(|| "manual".to_string());
@@ -248,7 +251,7 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
                 started_unix,
                 source,
                 transport_filter: String::new(),
-                deep: false,
+                deep: args.deep,
             };
             let _ = store.record_run(&meta, &results);
         }
@@ -517,6 +520,15 @@ fn print_row(result: &ScanResult) {
         .as_ref()
         .and_then(|g| g.country.clone())
         .unwrap_or_else(|| "-".to_string());
+    let detail = match &result.deep {
+        Some(d) if d.ok => format!(
+            "{} · deep OK ({} ms)",
+            result.detail,
+            d.socks_ms.unwrap_or(0)
+        ),
+        Some(d) => format!("{} · deep FAIL: {}", result.detail, d.detail),
+        None => result.detail.clone(),
+    };
     println!(
         "{:<7} {:>8} {:<11} {:<24} {:<3} {}",
         status_label(result.reachability),
@@ -524,7 +536,7 @@ fn print_row(result: &ScanResult) {
         result.transport.token(),
         host_port,
         cc,
-        result.detail
+        detail
     );
 }
 

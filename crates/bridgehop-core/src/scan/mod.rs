@@ -11,6 +11,8 @@
 //! Tier T3 (deep pluggable-transport verification) lands in a later phase behind the
 //! `deep-verify` feature.
 
+#[cfg(feature = "deep-verify")]
+mod deep;
 mod fronted;
 mod tcp;
 
@@ -64,6 +66,8 @@ pub async fn scan(
 ) -> Vec<ScanResult> {
     let workers = options.workers.clamp(MIN_WORKERS, MAX_WORKERS);
     let timeout = options.timeout.clamp(MIN_TIMEOUT, MAX_TIMEOUT);
+    #[cfg_attr(not(feature = "deep-verify"), allow(unused_variables))]
+    let deep = options.deep;
     let semaphore = Arc::new(Semaphore::new(workers));
 
     let mut handles = Vec::with_capacity(bridges.len());
@@ -77,7 +81,13 @@ pub async fn scan(
             if cancel.is_cancelled() {
                 return None;
             }
-            let result = probe_bridge(&bridge, timeout, &cancel).await;
+            #[cfg_attr(not(feature = "deep-verify"), allow(unused_mut))]
+            let mut result = probe_bridge(&bridge, timeout, &cancel).await;
+            // Tier T3: optional real pluggable-transport handshake (desktop, feature-gated).
+            #[cfg(feature = "deep-verify")]
+            if deep && result.is_working() {
+                result.deep = Some(deep::deep_verify(&bridge, timeout, &cancel).await);
+            }
             let _ = progress.send(result.clone()).await;
             Some(result)
         }));
