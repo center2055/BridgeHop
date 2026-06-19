@@ -11,7 +11,20 @@ use state::AppState;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
+        .setup(|_app| {
+            // On mobile the per-OS data location isn't discoverable via `directories`, so hand the
+            // core engine the app's sandboxed data dir for its SQLite store and source cache.
+            #[cfg(mobile)]
+            {
+                use tauri::Manager;
+                if let Ok(dir) = _app.path().app_data_dir() {
+                    bridgehop_core::paths::set_data_dir(dir);
+                }
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::start_scan,
             commands::cancel_scan,

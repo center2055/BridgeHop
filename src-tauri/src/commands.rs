@@ -8,6 +8,7 @@ use bridgehop_core::store::{Reliability, RunMeta, RunSummary, Store};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, ScanOptions, ScanResult};
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_opener::OpenerExt;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -125,6 +126,7 @@ pub fn export_bridges(lines: Vec<String>, format: ExportFormat) -> String {
 
 /// Prompt for a save location with a native dialog and write `contents` there. Returns the chosen
 /// path, or `None` if the user cancelled.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn save_text_file(name: String, contents: String) -> Result<Option<String>, String> {
     let chosen = tokio::task::spawn_blocking(move || {
@@ -148,8 +150,16 @@ pub async fn save_text_file(name: String, contents: String) -> Result<Option<Str
     }
 }
 
+/// Mobile has no native save dialog; the UI hides export there. Return a clear error if invoked.
+#[cfg(not(desktop))]
+#[tauri::command]
+pub async fn save_text_file(_name: String, _contents: String) -> Result<Option<String>, String> {
+    Err("Saving to a file isn't supported on this platform yet.".to_string())
+}
+
 /// Open a file picker, read the chosen file, and parse bridge lines from it (plain, torrc, or
 /// JSON exported by BridgeHop). Returns the parsed lines, or `None` if the user cancelled.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn import_bridges_file() -> Result<Option<Vec<String>>, String> {
     let chosen = tokio::task::spawn_blocking(|| {
@@ -174,6 +184,13 @@ pub async fn import_bridges_file() -> Result<Option<Vec<String>>, String> {
     }
 }
 
+/// Mobile has no native file picker; the UI hides import there. Return a clear error if invoked.
+#[cfg(not(desktop))]
+#[tauri::command]
+pub async fn import_bridges_file() -> Result<Option<Vec<String>>, String> {
+    Err("Importing from a file isn't supported on this platform yet.".to_string())
+}
+
 /// Render a bridge line (or any text) as an SVG QR code for sharing.
 #[tauri::command]
 pub fn qr_svg(text: String) -> Result<String, String> {
@@ -187,7 +204,8 @@ pub struct DeepStatus {
     pub pt_dir: String,
 }
 
-/// Whether an obfs4 client is installed, and where BridgeHop looks for PT binaries.
+/// Whether an obfs4 client is installed, and where BridgeHop looks for PT binaries (desktop only).
+#[cfg(desktop)]
 #[tauri::command]
 pub fn deep_status() -> DeepStatus {
     DeepStatus {
@@ -196,31 +214,41 @@ pub fn deep_status() -> DeepStatus {
     }
 }
 
-/// Open a URL or file path with the OS default handler.
+/// Deep verify spawns native PT clients, which mobile sandboxes forbid: always report unavailable.
+#[cfg(not(desktop))]
 #[tauri::command]
-pub fn open_external(target: String) -> Result<(), String> {
-    open_target(&target)
+pub fn deep_status() -> DeepStatus {
+    DeepStatus {
+        available: false,
+        pt_dir: String::new(),
+    }
+}
+
+/// Open a URL (or path) with the OS default handler, via the opener plugin — no console flash on
+/// Windows, and works on Android.
+#[tauri::command]
+pub fn open_external(app: AppHandle, target: String) -> Result<(), String> {
+    app.opener()
+        .open_url(target, None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
 /// Create the pluggable-transport directory (if needed) and reveal it in the file manager.
+#[cfg(desktop)]
 #[tauri::command]
-pub fn open_pt_dir() -> Result<(), String> {
+pub fn open_pt_dir(app: AppHandle) -> Result<(), String> {
     let dir = bridgehop_core::scan::deep::pt_dir();
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    open_target(&dir.display().to_string())
+    app.opener()
+        .open_path(dir.display().to_string(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
 
-fn open_target(target: &str) -> Result<(), String> {
-    // explorer.exe is a GUI process, so it opens URLs (in the default browser) and folders
-    // without flashing a console window the way `cmd /C start` does.
-    #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("explorer.exe").arg(target).spawn();
-    #[cfg(target_os = "macos")]
-    let result = std::process::Command::new("open").arg(target).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let result = std::process::Command::new("xdg-open").arg(target).spawn();
-
-    result.map(|_| ()).map_err(|e| e.to_string())
+/// No pluggable-transport directory on mobile (deep verify is desktop-only).
+#[cfg(not(desktop))]
+#[tauri::command]
+pub fn open_pt_dir() -> Result<(), String> {
+    Err("Deep verify isn't available on this platform.".to_string())
 }
 
 fn unix_now() -> u64 {

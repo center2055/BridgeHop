@@ -101,6 +101,14 @@ export function inTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
+/**
+ * True on the mobile (Android) build, where native file dialogs and deep verify aren't available.
+ * Used to hide desktop-only controls so they don't surface errors when tapped.
+ */
+export function isMobile(): boolean {
+  return typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+}
+
 /** Start a scan; resolves with the full result set when finished. */
 export async function startScan(request: ScanRequest): Promise<ScanResult[]> {
   return invoke<ScanResult[]>('start_scan', {

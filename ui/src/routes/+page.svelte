@@ -14,6 +14,7 @@
     openExternal,
     openPtDir,
     inTauri,
+    isMobile,
     SOURCE_TRANSPORTS,
     CATEGORIES,
     type ScanResult,
@@ -304,9 +305,11 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       <Icon name="library" size={15} />
       {loadingSource ? t('common.loading') : t('scan.loadBridges')}
     </button>
-    <button class="btn" onclick={importFile}>
-      <Icon name="external" size={15} /> {t('scan.importFile')}
-    </button>
+    {#if !isMobile()}
+      <button class="btn" onclick={importFile}>
+        <Icon name="external" size={15} /> {t('scan.importFile')}
+      </button>
+    {/if}
     {#if sourceInfo}
       <span class="source-info">{sourceInfo}</span>
     {/if}
@@ -333,9 +336,11 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         <label for="timeout">{t('scan.timeout')}</label>
         <input id="timeout" class="input" type="number" min="500" max="60000" step="500" bind:value={timeoutMs} />
       </div>
-      <label class="checkbox deep-toggle" title={t('scan.deepVerifyHint')}>
-        <input type="checkbox" checked={deepVerify} onchange={(e) => toggleDeep(e.currentTarget.checked)} /> {t('scan.deepVerify')}
-      </label>
+      {#if !isMobile()}
+        <label class="checkbox deep-toggle" title={t('scan.deepVerifyHint')}>
+          <input type="checkbox" checked={deepVerify} onchange={(e) => toggleDeep(e.currentTarget.checked)} /> {t('scan.deepVerify')}
+        </label>
+      {/if}
       <div class="actions">
         {#if scanning}
           <button class="btn btn-danger" onclick={stopScan}>
@@ -364,12 +369,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <div class="stat down"><span class="stat-value">{summary.unreachable}</span><span class="stat-label">{t('scan.sum.unreachable')}</span></div>
   </section>
 
-  <div class="results-toolbar">
-    <span class="toolbar-label">{t('scan.exportWorking')}</span>
-    <button class="btn small" onclick={() => exportFile('plain')}>{t('scan.exportPlain')}</button>
-    <button class="btn small" onclick={() => exportFile('torrc')}>{t('scan.exportTorrc')}</button>
-    <button class="btn small" onclick={() => exportFile('json')}>{t('scan.exportJson')}</button>
-  </div>
+  {#if !isMobile()}
+    <div class="results-toolbar">
+      <span class="toolbar-label">{t('scan.exportWorking')}</span>
+      <button class="btn small" onclick={() => exportFile('plain')}>{t('scan.exportPlain')}</button>
+      <button class="btn small" onclick={() => exportFile('torrc')}>{t('scan.exportTorrc')}</button>
+      <button class="btn small" onclick={() => exportFile('json')}>{t('scan.exportJson')}</button>
+    </div>
+  {/if}
 
   <section class="card table-card">
     <table>

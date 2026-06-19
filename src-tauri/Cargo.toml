@@ -17,11 +17,23 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-bridgehop-core = { workspace = true, features = ["qr", "deep-verify"] }
+# `deep-verify` (spawns native PT clients) is desktop-only and enabled in the target section below;
+# the base build keeps just `qr` so the engine compiles on mobile, where spawning is sandboxed out.
+bridgehop-core = { workspace = true, features = ["qr"] }
 serde = { workspace = true }
 tauri = { version = "2", features = [] }
+# Cross-platform open-in-default-handler (desktop + Android). Replaces shelling out to the OS, so
+# there's no console-window flash on Windows and links work on mobile too.
+tauri-plugin-opener = "2"
 tokio = { workspace = true }
 tokio-util = "0.7"
-# Native "Save as" dialog for exporting bridge lists. Sync GTK backend on Linux (GTK is already
+
+# Desktop-only dependencies. Deep verify launches native pluggable-transport clients, and the
+# native file dialogs (rfd) have no mobile backend, so both are confined to desktop targets.
+# (Cargo's target table only understands real target cfgs, so "desktop" is spelled out as
+# "not Android and not iOS" — the `desktop`/`mobile` aliases only exist for `#[cfg(...)]` in code.)
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+bridgehop-core = { workspace = true, features = ["qr", "deep-verify"] }
+# Native "Save as" / "Open" dialogs for import/export. Sync GTK backend on Linux (GTK is already
 # linked by Tauri's webkit2gtk), WinAPI backend on Windows; no async runtime pulled in.
 rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
