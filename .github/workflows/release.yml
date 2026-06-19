@@ -12,6 +12,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Desktop bundles (Windows .exe/.msi, macOS .dmg/.app, Linux .deb/.AppImage/.rpm).
+  # On a tag push these are attached to a draft GitHub Release; every run also uploads them as
+  # downloadable workflow artifacts (so `workflow_dispatch` produces binaries without cutting a tag).
   app:
     name: App bundle — ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -38,12 +41,66 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
+          # Create/attach to a draft release only on tag pushes; otherwise just build.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: 'BridgeHop ${{ github.ref_name }}'
           releaseDraft: true
           prerelease: false
           projectPath: .
+      - name: Upload desktop bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgehop-${{ matrix.os }}
+          path: |
+            target/release/bundle/**/*
+          if-no-files-found: warn
 
+  # Android APK. Builds a debug-signed, sideloadable universal APK (no release keystore required).
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Setup Android NDK
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+      - uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix ui ci
+      - name: Initialize Android project
+        run: npm run tauri -- android init
+        env:
+          NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+      - name: Build APK (debug-signed)
+        run: npm run tauri -- android build --apk --debug
+        env:
+          NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridgehop-android-apk
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+  # Standalone CLI binary per OS.
   cli:
     name: CLI binary — ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
