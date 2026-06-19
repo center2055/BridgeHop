@@ -12,7 +12,7 @@
 //! `deep-verify` feature.
 
 #[cfg(feature = "deep-verify")]
-mod deep;
+pub mod deep;
 mod fronted;
 mod tcp;
 

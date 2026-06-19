@@ -5,4 +5,4 @@
 mod pt;
 mod socks;
 
-pub use pt::deep_verify;
+pub use pt::{deep_verify, obfs4_available, pt_dir};

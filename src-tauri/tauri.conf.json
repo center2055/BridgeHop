@@ -16,8 +16,8 @@
         "title": "BridgeHop",
         "width": 1140,
         "height": 780,
-        "minWidth": 900,
-        "minHeight": 600
+        "minWidth": 360,
+        "minHeight": 520
       }
     ],
     "security": {

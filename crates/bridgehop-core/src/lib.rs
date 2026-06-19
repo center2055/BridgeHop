@@ -6,8 +6,6 @@
 //! implementation.
 
 pub mod error;
-#[cfg(feature = "geo")]
-pub mod geo;
 pub mod io;
 pub mod model;
 pub mod parse;

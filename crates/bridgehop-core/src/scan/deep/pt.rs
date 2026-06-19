@@ -193,6 +193,16 @@ fn split_socks_args(args: &str) -> (String, String) {
     }
 }
 
+/// Whether an obfs4 client (lyrebird or obfs4proxy) is installed and locatable.
+pub fn obfs4_available() -> bool {
+    locate(&["lyrebird", "obfs4proxy"]).is_some()
+}
+
+/// The directory BridgeHop looks in for pluggable-transport binaries.
+pub fn pt_dir() -> PathBuf {
+    paths::data_dir().join("pt")
+}
+
 /// The platform executable name for a PT base name.
 fn exe_name(base: &str) -> String {
     if cfg!(windows) {
@@ -204,7 +214,7 @@ fn exe_name(base: &str) -> String {
 
 /// Find the first existing PT binary among `names`, searching BridgeHop's `pt` dir then Tor Browser.
 fn locate(names: &[&str]) -> Option<PathBuf> {
-    let mut dirs = vec![paths::data_dir().join("pt")];
+    let mut dirs = vec![pt_dir()];
     dirs.extend(tor_browser_pt_dirs());
     for dir in dirs {
         for name in names {

@@ -17,8 +17,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-bridgehop-core = { workspace = true, features = ["qr", "geo", "deep-verify"] }
+bridgehop-core = { workspace = true, features = ["qr", "deep-verify"] }
 serde = { workspace = true }
 tauri = { version = "2", features = [] }
 tokio = { workspace = true }
 tokio-util = "0.7"
+# Native "Save as" dialog for exporting bridge lists. Sync GTK backend on Linux (GTK is already
+# linked by Tauri's webkit2gtk), WinAPI backend on Windows; no async runtime pulled in.
+rfd = { version = "0.14", default-features = false, features = ["gtk3"] }

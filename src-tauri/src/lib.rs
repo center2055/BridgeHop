@@ -19,8 +19,12 @@ pub fn run() {
             commands::list_runs,
             commands::reliability,
             commands::export_bridges,
+            commands::save_text_file,
+            commands::import_bridges_file,
             commands::qr_svg,
-            commands::geo_status
+            commands::deep_status,
+            commands::open_external,
+            commands::open_pt_dir
         ])
         .run(tauri::generate_context!())
         .expect("error while running BridgeHop");
