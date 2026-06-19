@@ -63,6 +63,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Debug native libs are large and unstripped; building them filled the runner's small disk.
+      # Reclaim the preinstalled toolchains we don't use (but keep the Android SDK and tool cache).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -79,7 +91,7 @@ jobs:
           ndk-version: r26d
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android
       - uses: Swatinem/rust-cache@v2
       - name: Install dependencies
         run: |
@@ -90,8 +102,10 @@ jobs:
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-      - name: Build APK (debug-signed)
-        run: npm run tauri -- android build --apk --debug
+      # Build a single ABI (arm64-v8a) — covers essentially all real Android phones and keeps the
+      # debug build within the runner's disk and time budget.
+      - name: Build APK (debug-signed, arm64)
+        run: npm run tauri -- android build --apk --debug --target aarch64
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
