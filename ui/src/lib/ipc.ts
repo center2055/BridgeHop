@@ -12,12 +12,6 @@ export interface DeepResult {
   detail: string;
 }
 
-export interface GeoInfo {
-  country: string | null;
-  asn: number | null;
-  as_org: string | null;
-}
-
 /** Mirrors `bridgehop_core::model::ScanResult`. */
 export interface ScanResult {
   bridge_id: string;
@@ -29,7 +23,6 @@ export interface ScanResult {
   reachability: Reachability;
   detail: string;
   deep: DeepResult | null;
-  geo: GeoInfo | null;
 }
 
 export interface ScanRequest {
@@ -138,19 +131,39 @@ export async function exportBridges(lines: string[], format: ExportFormat): Prom
   return invoke<string>('export_bridges', { lines, format });
 }
 
+/** Save text to a user-chosen file via a native save dialog. Resolves to the saved path, or null if cancelled. */
+export async function saveTextFile(name: string, contents: string): Promise<string | null> {
+  return invoke<string | null>('save_text_file', { name, contents });
+}
+
+/** Open a file picker and parse bridge lines from the chosen file. Returns lines, or null if cancelled. */
+export async function importBridgesFile(): Promise<string[] | null> {
+  return invoke<string[] | null>('import_bridges_file');
+}
+
 /** Render a bridge line as an SVG QR code. */
 export async function qrSvg(text: string): Promise<string> {
   return invoke<string>('qr_svg', { text });
 }
 
-export interface GeoStatus {
+export interface DeepStatus {
   available: boolean;
-  dir: string;
+  pt_dir: string;
 }
 
-/** Whether the optional GeoLite2 databases are present, and where BridgeHop looks for them. */
-export async function geoStatus(): Promise<GeoStatus> {
-  return invoke<GeoStatus>('geo_status');
+/** Whether an obfs4 client is installed (for deep verify), and where BridgeHop looks for it. */
+export async function deepStatus(): Promise<DeepStatus> {
+  return invoke<DeepStatus>('deep_status');
+}
+
+/** Open a URL or file path with the OS default handler. */
+export async function openExternal(target: string): Promise<void> {
+  await invoke('open_external', { target });
+}
+
+/** Create and reveal the pluggable-transport directory in the file manager. */
+export async function openPtDir(): Promise<void> {
+  await invoke('open_pt_dir');
 }
 
 /** Request cancellation of the in-flight scan. */

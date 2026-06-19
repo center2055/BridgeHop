@@ -93,6 +93,33 @@ button {
   font-family: inherit;
 }
 
+/* Themed scrollbars (Chromium / WebView2) ------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-subtle);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Primitives ------------------------------------------------------- */
 .card {
   background: var(--surface);
@@ -126,11 +153,11 @@ button {
 .btn-primary {
   border: none;
   color: var(--accent-contrast);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--accent);
 }
 .btn-primary:hover {
   filter: brightness(1.05);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--accent);
 }
 .btn-danger {
   border-color: transparent;

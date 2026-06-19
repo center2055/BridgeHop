@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { listRuns, inTauri, type RunSummary } from '$lib/ipc';
+  import { t } from '$lib/i18n.svelte';
 
   let runs = $state<RunSummary[]>([]);
   let loading = $state(true);
@@ -30,38 +31,38 @@
 </script>
 
 <header class="page-head">
-  <h1>History</h1>
-  <p>Past scan runs. Each scan you run is recorded here.</p>
+  <h1>{t('history.title')}</h1>
+  <p>{t('history.subtitle')}</p>
 </header>
 
 {#if error}
   <div class="placeholder card">{error}</div>
 {:else if loading}
-  <div class="placeholder card">Loading…</div>
+  <div class="placeholder card">{t('common.loading')}</div>
 {:else if runs.length === 0}
-  <div class="placeholder card">No scans recorded yet. Run a scan to start building history.</div>
+  <div class="placeholder card">{t('history.empty')}</div>
 {:else}
   <section class="card table-card">
     <table>
       <thead>
         <tr>
-          <th>When</th>
-          <th>Source</th>
-          <th class="num">Total</th>
-          <th class="num">Working</th>
-          <th class="num">Down</th>
-          <th class="num">Skipped</th>
+          <th>{t('history.col.when')}</th>
+          <th class="hide-sm">{t('history.col.source')}</th>
+          <th class="num hide-sm">{t('history.col.total')}</th>
+          <th class="num">{t('history.col.working')}</th>
+          <th class="num">{t('history.col.down')}</th>
+          <th class="num hide-sm">{t('history.col.skipped')}</th>
         </tr>
       </thead>
       <tbody>
         {#each runs as r (r.id)}
           <tr>
             <td>{fmtDate(r.started_unix)}</td>
-            <td class="mono source">{r.source}</td>
-            <td class="num">{r.total}</td>
+            <td class="mono source hide-sm">{r.source}</td>
+            <td class="num hide-sm">{r.total}</td>
             <td class="num ok">{working(r)}</td>
             <td class="num down">{r.unreachable}</td>
-            <td class="num muted">{r.unparsed}</td>
+            <td class="num muted hide-sm">{r.unparsed}</td>
           </tr>
         {/each}
       </tbody>
@@ -130,5 +131,11 @@
   }
   .muted {
     color: var(--text-subtle);
+  }
+
+  @media (max-width: 720px) {
+    .hide-sm {
+      display: none;
+    }
   }
 </style>

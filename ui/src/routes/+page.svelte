@@ -7,7 +7,12 @@
     onScanProgress,
     fetchBridges,
     exportBridges,
+    saveTextFile,
+    importBridgesFile,
     qrSvg,
+    deepStatus,
+    openExternal,
+    openPtDir,
     inTauri,
     SOURCE_TRANSPORTS,
     CATEGORIES,
@@ -16,6 +21,7 @@
     type Category,
     type ExportFormat
   } from '$lib/ipc';
+  import { t } from '$lib/i18n.svelte';
 
   const SAMPLE = `# Paste bridge lines here (one per line). Examples:
 1.1.1.1:443 0123456789ABCDEF0123456789ABCDEF01234567
@@ -41,6 +47,10 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   // QR modal
   let qrOpen = $state(false);
   let qrContent = $state('');
+
+  // Deep-verify install prompt
+  let deepModalOpen = $state(false);
+  let deepPtDir = $state('');
 
   const summary = $derived.by(() => {
     const s = { total: results.length, working: 0, reachable: 0, slow: 0, fronted: 0, unreachable: 0, unparsed: 0 };
@@ -76,11 +86,11 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       .map((l) => l.trim())
       .filter((l) => l.length > 0 && !l.startsWith('#'));
     if (lines.length === 0) {
-      error = 'Add at least one bridge line.';
+      error = t('scan.msg.addOne');
       return;
     }
     if (!inTauri()) {
-      error = 'Scanning is only available in the desktop app.';
+      error = t('scan.msg.desktopScan');
       return;
     }
     error = null;
@@ -106,7 +116,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   async function loadFromSource() {
     if (loadingSource) return;
     if (!inTauri()) {
-      error = 'Loading sources is only available in the desktop app.';
+      error = t('scan.msg.desktopSources');
       return;
     }
     loadingSource = true;
@@ -120,8 +130,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       });
       linesText = result.lines.join('\n');
       loadedSource = result.source;
-      const cached = result.stale ? ' (cached — network unavailable)' : '';
-      sourceInfo = `Loaded ${result.lines.length} bridge${result.lines.length === 1 ? '' : 's'} from ${result.source}${cached}`;
+      const cached = result.stale ? t('scan.msg.cachedSuffix') : '';
+      sourceInfo = t('scan.msg.loaded', { count: result.lines.length, source: result.source, cached });
     } catch (e) {
       error = String(e);
     } finally {
@@ -133,16 +143,54 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     return results.filter((r) => r.reachability !== 'unreachable' && r.reachability !== 'unparsed').map((r) => r.raw);
   }
 
-  async function copyExport(format: ExportFormat) {
+  async function exportFile(format: ExportFormat) {
     const working = workingRaws();
     if (working.length === 0) {
-      error = 'No working bridges to export.';
+      error = t('scan.msg.noneToExport');
+      return;
+    }
+    if (!inTauri()) {
+      error = t('scan.msg.desktopSave');
       return;
     }
     try {
-      const text = inTauri() ? await exportBridges(working, format) : working.join('\n');
-      await navigator.clipboard.writeText(text);
-      sourceInfo = `Copied ${working.length} working bridge${working.length === 1 ? '' : 's'} (${format}) to clipboard`;
+      const text = await exportBridges(working, format);
+      const name = format === 'json' ? 'bridges.json' : format === 'torrc' ? 'bridges.torrc' : 'bridges.txt';
+      const saved = await saveTextFile(name, text);
+      if (saved) {
+        sourceInfo = t('scan.msg.saved', { count: working.length, path: saved });
+      }
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function importFile() {
+    if (!inTauri()) {
+      error = t('scan.msg.desktopImport');
+      return;
+    }
+    try {
+      const lines = await importBridgesFile();
+      if (lines === null) return; // user cancelled
+      if (lines.length === 0) {
+        error = t('scan.msg.importEmpty');
+        return;
+      }
+      linesText = lines.join('\n');
+      loadedSource = null;
+      results = [];
+      error = null;
+      sourceInfo = t('scan.msg.imported', { count: lines.length });
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function copyRaw(raw: string) {
+    try {
+      await navigator.clipboard.writeText(raw);
+      sourceInfo = t('scan.msg.copiedLine');
     } catch (e) {
       error = String(e);
     }
@@ -150,12 +198,54 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
   async function showQr(raw: string) {
     if (!inTauri()) {
-      error = 'QR codes are only available in the desktop app.';
+      error = t('scan.msg.desktopQr');
       return;
     }
     try {
       qrContent = await qrSvg(raw);
       qrOpen = true;
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function toggleDeep(wanted: boolean) {
+    if (!wanted) {
+      deepVerify = false;
+      return;
+    }
+    if (!inTauri()) {
+      deepVerify = false;
+      error = t('scan.msg.desktopDeep');
+      return;
+    }
+    try {
+      const status = await deepStatus();
+      deepPtDir = status.pt_dir;
+      if (status.available) {
+        deepVerify = true;
+      } else {
+        // No obfs4 client found: prompt to install it or stay off.
+        deepVerify = false;
+        deepModalOpen = true;
+      }
+    } catch (e) {
+      deepVerify = false;
+      error = String(e);
+    }
+  }
+
+  async function installObfs4() {
+    try {
+      await openPtDir();
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  async function getTorBrowser() {
+    try {
+      await openExternal('https://www.torproject.org/download/');
     } catch (e) {
       error = String(e);
     }
@@ -171,14 +261,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     }
   }
 
-  function flag(code: string | null | undefined): string {
-    if (!code || code.length !== 2) return '';
-    const base = 'A'.charCodeAt(0);
-    const a = 0x1f1e6 + (code.toUpperCase().charCodeAt(0) - base);
-    const b = 0x1f1e6 + (code.toUpperCase().charCodeAt(1) - base);
-    return String.fromCodePoint(a, b);
-  }
-
   function badgeLabel(r: Reachability): string {
     switch (r) {
       case 'reachable': return 'OK';
@@ -192,15 +274,15 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
 <header class="page-head">
   <div>
-    <h1>Scan bridges</h1>
-    <p>Check whether Tor bridges are reachable from your network — all transport types.</p>
+    <h1>{t('scan.title')}</h1>
+    <p>{t('scan.subtitle')}</p>
   </div>
 </header>
 
 <section class="card controls">
   <div class="source-row">
     <div class="field">
-      <label for="src-transport">Source</label>
+      <label for="src-transport">{t('scan.source')}</label>
       <select id="src-transport" class="input" bind:value={sourceTransport}>
         {#each SOURCE_TRANSPORTS as t (t)}
           <option value={t}>{t}</option>
@@ -208,19 +290,22 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       </select>
     </div>
     <div class="field">
-      <label for="src-category">Category</label>
+      <label for="src-category">{t('scan.category')}</label>
       <select id="src-category" class="input" bind:value={sourceCategory}>
         {#each CATEGORIES as c (c.value)}
-          <option value={c.value}>{c.label}</option>
+          <option value={c.value}>{t('scan.cat.' + c.value)}</option>
         {/each}
       </select>
     </div>
-    <label class="checkbox" title="Fetch the IPv6 list (collector transports only)">
-      <input type="checkbox" bind:checked={sourceIpv6} /> IPv6
+    <label class="checkbox" title={t('scan.ipv6Hint')}>
+      <input type="checkbox" bind:checked={sourceIpv6} /> {t('scan.ipv6')}
     </label>
     <button class="btn" onclick={loadFromSource} disabled={loadingSource}>
       <Icon name="library" size={15} />
-      {loadingSource ? 'Loading…' : 'Load bridges'}
+      {loadingSource ? t('common.loading') : t('scan.loadBridges')}
+    </button>
+    <button class="btn" onclick={importFile}>
+      <Icon name="external" size={15} /> {t('scan.importFile')}
     </button>
     {#if sourceInfo}
       <span class="source-info">{sourceInfo}</span>
@@ -229,7 +314,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
   <div class="controls-grid">
     <div class="field bridges-field">
-      <label for="bridges">Bridge lines</label>
+      <label for="bridges">{t('scan.bridgeLines')}</label>
       <textarea
         id="bridges"
         class="textarea"
@@ -241,24 +326,24 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
     <div class="settings">
       <div class="field">
-        <label for="workers">Concurrency</label>
+        <label for="workers">{t('scan.concurrency')}</label>
         <input id="workers" class="input" type="number" min="1" max="64" bind:value={workers} />
       </div>
       <div class="field">
-        <label for="timeout">Timeout (ms)</label>
+        <label for="timeout">{t('scan.timeout')}</label>
         <input id="timeout" class="input" type="number" min="500" max="60000" step="500" bind:value={timeoutMs} />
       </div>
-      <label class="checkbox deep-toggle" title="Launch the real obfs4 client to confirm an actual handshake (desktop; requires the PT binary or Tor Browser)">
-        <input type="checkbox" bind:checked={deepVerify} /> Deep verify (obfs4)
+      <label class="checkbox deep-toggle" title={t('scan.deepVerifyHint')}>
+        <input type="checkbox" checked={deepVerify} onchange={(e) => toggleDeep(e.currentTarget.checked)} /> {t('scan.deepVerify')}
       </label>
       <div class="actions">
         {#if scanning}
           <button class="btn btn-danger" onclick={stopScan}>
-            <Icon name="stop" size={15} /> Stop
+            <Icon name="stop" size={15} /> {t('scan.stopBtn')}
           </button>
         {:else}
           <button class="btn btn-primary" onclick={runScan}>
-            <Icon name="play" size={15} /> Scan
+            <Icon name="play" size={15} /> {t('scan.scanBtn')}
           </button>
         {/if}
       </div>
@@ -272,48 +357,40 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 
 {#if results.length > 0}
   <section class="stats">
-    <div class="stat"><span class="stat-value">{summary.total}</span><span class="stat-label">scanned</span></div>
-    <div class="stat ok"><span class="stat-value">{summary.working}</span><span class="stat-label">working</span></div>
-    <div class="stat"><span class="stat-value">{summary.reachable}</span><span class="stat-label">reachable</span></div>
-    <div class="stat"><span class="stat-value">{summary.fronted}</span><span class="stat-label">fronted</span></div>
-    <div class="stat down"><span class="stat-value">{summary.unreachable}</span><span class="stat-label">unreachable</span></div>
+    <div class="stat"><span class="stat-value">{summary.total}</span><span class="stat-label">{t('scan.sum.scanned')}</span></div>
+    <div class="stat ok"><span class="stat-value">{summary.working}</span><span class="stat-label">{t('scan.sum.working')}</span></div>
+    <div class="stat"><span class="stat-value">{summary.reachable}</span><span class="stat-label">{t('scan.sum.reachable')}</span></div>
+    <div class="stat"><span class="stat-value">{summary.fronted}</span><span class="stat-label">{t('scan.sum.fronted')}</span></div>
+    <div class="stat down"><span class="stat-value">{summary.unreachable}</span><span class="stat-label">{t('scan.sum.unreachable')}</span></div>
   </section>
 
   <div class="results-toolbar">
-    <span class="toolbar-label">Export working bridges</span>
-    <button class="btn small" onclick={() => copyExport('plain')}>Copy plain</button>
-    <button class="btn small" onclick={() => copyExport('torrc')}>Copy torrc</button>
-    <button class="btn small" onclick={() => copyExport('json')}>Copy JSON</button>
+    <span class="toolbar-label">{t('scan.exportWorking')}</span>
+    <button class="btn small" onclick={() => exportFile('plain')}>{t('scan.exportPlain')}</button>
+    <button class="btn small" onclick={() => exportFile('torrc')}>{t('scan.exportTorrc')}</button>
+    <button class="btn small" onclick={() => exportFile('json')}>{t('scan.exportJson')}</button>
   </div>
 
   <section class="card table-card">
     <table>
       <thead>
         <tr>
-          <th class="col-status">Status</th>
-          <th class="col-ping">Ping</th>
-          <th>Transport</th>
-          <th>Endpoint</th>
-          <th class="col-geo">Country</th>
-          <th class="col-asn">ASN</th>
-          <th>Detail</th>
-          <th class="col-qr">QR</th>
+          <th class="col-status">{t('scan.col.status')}</th>
+          <th class="col-ping hide-sm">{t('scan.col.ping')}</th>
+          <th class="hide-sm">{t('scan.col.transport')}</th>
+          <th>{t('scan.col.endpoint')}</th>
+          <th class="hide-sm">{t('scan.col.detail')}</th>
+          <th class="col-actions">{t('scan.col.actions')}</th>
         </tr>
       </thead>
       <tbody>
         {#each results as r (r.bridge_id + r.probed_host + r.probed_port)}
           <tr>
             <td><span class={badgeClass(r.reachability)}>{badgeLabel(r.reachability)}</span></td>
-            <td class="col-ping mono">{r.ping_ms != null ? `${r.ping_ms} ms` : '—'}</td>
-            <td><span class="chip">{r.transport}</span></td>
+            <td class="col-ping mono hide-sm">{r.ping_ms != null ? `${r.ping_ms} ms` : '-'}</td>
+            <td class="hide-sm"><span class="chip">{r.transport}</span></td>
             <td class="mono endpoint">{r.probed_host}:{r.probed_port}</td>
-            <td class="col-geo">
-              {#if r.geo?.country}{flag(r.geo.country)} {r.geo.country}{:else}<span class="muted">—</span>{/if}
-            </td>
-            <td class="col-asn" title={r.geo?.as_org ?? ''}>
-              {#if r.geo?.asn}AS{r.geo.asn}{:else}<span class="muted">—</span>{/if}
-            </td>
-            <td class="detail">
+            <td class="detail hide-sm">
               {r.detail}
               {#if r.deep}
                 <span class="deep-badge" class:ok={r.deep.ok} title={r.deep.detail}>
@@ -321,8 +398,11 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
                 </span>
               {/if}
             </td>
-            <td class="col-qr">
-              <button class="qr-btn" title="Show QR code" onclick={() => showQr(r.raw)}>QR</button>
+            <td class="col-actions">
+              <div class="row-actions">
+                <button class="qr-btn" title={t('scan.rowCopyTitle')} onclick={() => copyRaw(r.raw)}>{t('scan.rowCopy')}</button>
+                <button class="qr-btn" title={t('scan.rowQrTitle')} onclick={() => showQr(r.raw)}>QR</button>
+              </div>
             </td>
           </tr>
         {/each}
@@ -332,7 +412,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 {:else}
   <section class="empty">
     <Icon name="scan" size={26} />
-    <p>Paste bridge lines above and hit <strong>Scan</strong> to see reachability results.</p>
+    <p>{t('scan.emptyHint')}</p>
   </section>
 {/if}
 
@@ -341,14 +421,33 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <div class="qr-modal">
       <!-- eslint-disable-next-line svelte/no-at-html-tags (trusted SVG from our own backend) -->
       <div class="qr-svg">{@html qrContent}</div>
-      <button class="btn" onclick={() => (qrOpen = false)}>Close</button>
+      <button class="btn" onclick={() => (qrOpen = false)}>{t('common.close')}</button>
+    </div>
+  </div>
+{/if}
+
+{#if deepModalOpen}
+  <div class="qr-overlay">
+    <div class="deep-modal">
+      <h2>{t('scan.deep.title')}</h2>
+      <p>{t('scan.deep.body')}</p>
+      <p class="muted">{t('scan.deep.lookHere')}</p>
+      <p class="mono deep-path">{deepPtDir}</p>
+      <div class="deep-actions">
+        <button class="btn btn-primary" onclick={installObfs4}>{t('scan.deep.openFolder')}</button>
+        <button class="btn" onclick={getTorBrowser}>{t('scan.deep.getTor')}</button>
+        <button class="btn" onclick={() => (deepModalOpen = false)}>{t('scan.deep.notNow')}</button>
+      </div>
     </div>
   </div>
 {/if}
 
 <svelte:window
   onkeydown={(e) => {
-    if (e.key === 'Escape') qrOpen = false;
+    if (e.key === 'Escape') {
+      qrOpen = false;
+      deepModalOpen = false;
+    }
   }} />
 
 <style>
@@ -505,13 +604,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   .detail {
     color: var(--text-subtle);
   }
-  .col-geo {
-    width: 96px;
-  }
-  .col-asn {
-    width: 96px;
-    color: var(--text-muted);
-  }
   .muted {
     color: var(--text-subtle);
   }
@@ -547,9 +639,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     padding: 0 12px;
     font-size: 12.5px;
   }
-  .col-qr {
-    width: 54px;
+  .col-actions {
+    width: 116px;
     text-align: center;
+  }
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
   }
   .qr-btn {
     border: 1px solid var(--border-strong);
@@ -599,6 +696,40 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     height: 100%;
   }
 
+  .deep-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    max-width: 440px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .deep-modal h2 {
+    font-size: 16px;
+  }
+  .deep-modal p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .deep-path {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 9px 11px;
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .deep-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
   .empty {
     margin-top: 60px;
     display: flex;
@@ -609,5 +740,26 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   }
   .empty p {
     margin: 0;
+  }
+
+  @media (max-width: 720px) {
+    .page-head h1 {
+      font-size: 22px;
+    }
+    .controls-grid {
+      grid-template-columns: 1fr;
+    }
+    .stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .hide-sm {
+      display: none;
+    }
+    .endpoint {
+      max-width: 50vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 </style>

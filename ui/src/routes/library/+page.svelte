@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { reliability, inTauri, type Reliability } from '$lib/ipc';
+  import { t } from '$lib/i18n.svelte';
 
   let rows = $state<Reliability[]>([]);
   let loading = $state(true);
@@ -25,11 +26,11 @@
   }
 
   function shortRaw(raw: string): string {
-    return raw.length > 64 ? raw.slice(0, 64) + '…' : raw;
+    return raw.length > 64 ? raw.slice(0, 64) + '...' : raw;
   }
 
   function fmtAvg(avg: number | null): string {
-    return avg == null ? '—' : `${Math.round(avg)} ms`;
+    return avg == null ? '-' : `${Math.round(avg)} ms`;
   }
 
   function fmtLast(unix: number): string {
@@ -38,29 +39,27 @@
 </script>
 
 <header class="page-head">
-  <h1>Library</h1>
-  <p>Bridges you've scanned, ranked by reliability across every recorded run.</p>
+  <h1>{t('library.title')}</h1>
+  <p>{t('library.subtitle')}</p>
 </header>
 
 {#if error}
   <div class="placeholder card">{error}</div>
 {:else if loading}
-  <div class="placeholder card">Loading…</div>
+  <div class="placeholder card">{t('common.loading')}</div>
 {:else if rows.length === 0}
-  <div class="placeholder card">
-    No bridges yet. Scan some bridges and they'll appear here with reliability stats.
-  </div>
+  <div class="placeholder card">{t('library.empty')}</div>
 {:else}
   <section class="card table-card">
     <table>
       <thead>
         <tr>
-          <th>Transport</th>
-          <th>Bridge</th>
-          <th class="uptime-col">Uptime</th>
-          <th class="num">Probes</th>
-          <th class="num">Avg</th>
-          <th class="num">Last seen</th>
+          <th>{t('library.col.transport')}</th>
+          <th>{t('library.col.bridge')}</th>
+          <th class="uptime-col">{t('library.col.uptime')}</th>
+          <th class="num hide-sm">{t('library.col.probes')}</th>
+          <th class="num hide-sm">{t('library.col.avg')}</th>
+          <th class="num hide-sm">{t('library.col.lastSeen')}</th>
         </tr>
       </thead>
       <tbody>
@@ -74,9 +73,9 @@
                 <span class="pct">{pct(r.uptime)}%</span>
               </div>
             </td>
-            <td class="num">{r.probes}</td>
-            <td class="num">{fmtAvg(r.avg_ms)}</td>
-            <td class="num muted">{fmtLast(r.last_unix)}</td>
+            <td class="num hide-sm">{r.probes}</td>
+            <td class="num hide-sm">{fmtAvg(r.avg_ms)}</td>
+            <td class="num muted hide-sm">{fmtLast(r.last_unix)}</td>
           </tr>
         {/each}
       </tbody>
@@ -155,7 +154,7 @@
   .fill {
     height: 100%;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    background: var(--accent);
   }
   .pct {
     font-size: 12px;
@@ -166,5 +165,14 @@
   }
   .muted {
     color: var(--text-subtle);
+  }
+
+  @media (max-width: 720px) {
+    .hide-sm {
+      display: none;
+    }
+    .raw {
+      max-width: 52vw;
+    }
   }
 </style>
