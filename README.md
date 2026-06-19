@@ -17,19 +17,17 @@ companion that shares the same engine.
   - Front-host TLS probe on `:443` for fronted/broker transports (`snowflake`, `meek`,
     `conjure`, `dnstt`, `webtunnel`) — a completed TLS handshake confirms fronting works.
 - **Built-in lists & live sources** — the community bridge collector (with mirror fallback),
-  built-in defaults for fronted transports, and your own manually pasted bridges. Fetched lists
-  are cached and served (stale) when you're offline.
+  built-in defaults for fronted transports, and your own bridges (pasted or imported from a file).
+  Fetched lists are cached and served (stale) when you're offline.
+- **Deep verify** (desktop) — optionally launch the real obfs4 client (lyrebird/obfs4proxy) to
+  confirm an actual handshake; prompts you to install it if it's missing.
 - **Scan history & reliability** — every scan is recorded; the Library ranks bridges by uptime
   and latency across runs.
-- **Import / export** — plain lines, `torrc`, JSON, and per-bridge QR codes for sharing.
+- **Import / export** — plain lines, `torrc`, JSON files, and per-bridge QR codes for sharing.
 - **CLI companion** — scriptable scanning and exporting that shares the app's engine and database.
-- **Modern UI** — light/dark theming, live result streaming, sortable tables.
-
-### Planned
-
-- **Deep verify** (desktop) — launch the real pluggable-transport client to confirm an actual
-  handshake (binaries downloaded on demand).
-- **Geo / ASN insights** — country and ASN per bridge via an offline GeoLite2 database.
+- **8 languages** — English, German, French, Russian, Simplified Chinese, South Azerbaijani,
+  Central Kurdish, and Persian (right-to-left supported).
+- **Modern, responsive UI** — light/dark theming, live result streaming, and a mobile layout.
 
 ## Architecture
 
