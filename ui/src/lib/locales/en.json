@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "scan": "Scan",
+    "library": "Library",
+    "history": "History",
+    "settings": "Settings",
+    "about": "About"
+  },
+  "app": {
+    "tagline": "bridge scanner"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light mode",
+    "dark": "Dark mode"
+  },
+  "common": {
+    "loading": "Loading...",
+    "close": "Close"
+  },
+  "scan": {
+    "title": "Scan bridges",
+    "subtitle": "Check whether Tor bridges are reachable from your network across all transport types.",
+    "source": "Source",
+    "category": "Category",
+    "ipv6": "IPv6",
+    "ipv6Hint": "Fetch the IPv6 list (collector transports only)",
+    "loadBridges": "Load bridges",
+    "bridgeLines": "Bridge lines",
+    "concurrency": "Concurrency",
+    "timeout": "Timeout (ms)",
+    "deepVerify": "Deep verify (obfs4)",
+    "deepVerifyHint": "Launch the real obfs4 client to confirm an actual handshake (desktop; requires the PT binary or Tor Browser)",
+    "scanBtn": "Scan",
+    "stopBtn": "Stop",
+    "cat": {
+      "tested": "Tested & Active",
+      "fresh72h": "Fresh (72h)",
+      "full_archive": "Full Archive"
+    },
+    "sum": {
+      "scanned": "scanned",
+      "working": "working",
+      "reachable": "reachable",
+      "fronted": "fronted",
+      "unreachable": "unreachable"
+    },
+    "col": {
+      "status": "Status",
+      "ping": "Ping",
+      "transport": "Transport",
+      "endpoint": "Endpoint",
+      "detail": "Detail",
+      "actions": "Actions"
+    },
+    "exportWorking": "Export working bridges",
+    "exportPlain": "Export plain",
+    "exportTorrc": "Export torrc",
+    "exportJson": "Export JSON",
+    "importFile": "Import file",
+    "rowCopy": "Copy",
+    "rowCopyTitle": "Copy this bridge line",
+    "rowQrTitle": "Show QR code",
+    "emptyHint": "Paste bridge lines above and hit Scan to see reachability results.",
+    "deep": {
+      "title": "obfs4 client required",
+      "body": "Deep verify launches the real obfs4 client (lyrebird or obfs4proxy) to confirm an actual handshake, not just TCP reachability. None was found on your system.",
+      "lookHere": "Install it (or Tor Browser), then turn Deep verify on again. BridgeHop looks for the client here:",
+      "openFolder": "Open install folder",
+      "getTor": "Get Tor Browser",
+      "notNow": "Not now"
+    },
+    "msg": {
+      "addOne": "Add at least one bridge line.",
+      "desktopScan": "Scanning is only available in the desktop app.",
+      "desktopSources": "Loading sources is only available in the desktop app.",
+      "desktopDeep": "Deep verify is only available in the desktop app.",
+      "desktopQr": "QR codes are only available in the desktop app.",
+      "desktopSave": "Saving files is only available in the desktop app.",
+      "loaded": "Loaded {count} bridges from {source}{cached}",
+      "cachedSuffix": " (cached, network unavailable)",
+      "saved": "Saved {count} working bridges to {path}",
+      "imported": "Imported {count} bridges from the file",
+      "importEmpty": "No bridges found in that file.",
+      "desktopImport": "Importing files is only available in the desktop app.",
+      "copiedLine": "Copied bridge line to clipboard",
+      "noneToExport": "No working bridges to export."
+    }
+  },
+  "library": {
+    "title": "Library",
+    "subtitle": "Bridges you've scanned, ranked by reliability across every recorded run.",
+    "empty": "No bridges yet. Scan some bridges and they'll appear here with reliability stats.",
+    "col": {
+      "transport": "Transport",
+      "bridge": "Bridge",
+      "uptime": "Uptime",
+      "probes": "Probes",
+      "avg": "Avg",
+      "lastSeen": "Last seen"
+    }
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "Past scan runs. Each scan you run is recorded here.",
+    "empty": "No scans recorded yet. Run a scan to start building history.",
+    "col": {
+      "when": "When",
+      "source": "Source",
+      "total": "Total",
+      "working": "Working",
+      "down": "Down",
+      "skipped": "Skipped"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Appearance, language, and more.",
+    "appearance": "Appearance",
+    "appearanceNote": "Choose between the light and dark theme.",
+    "language": "Language",
+    "languageNote": "Choose the display language. Right-to-left languages are laid out accordingly."
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "BridgeHop - a lightweight Tor bridge reachability scanner.",
+    "version": "Version {version}",
+    "tagline": "Check whether Tor bridges are reachable from your network across every transport type, with built-in lists, live sources, history, and reliability tracking.",
+    "links": "Links",
+    "linkGithub": "GitHub & issues",
+    "linkDiscord": "Discord",
+    "linkKofi": "Ko-fi",
+    "linkTelegram": "Telegram",
+    "donate": "Donate",
+    "donateIntro": "If BridgeHop is useful to you, a small donation helps keep the Hop apps maintained.",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "bridgeSources": "Bridge sources",
+    "bridgeSourcesIntro": "Where BridgeHop's built-in lists and live sources come from.",
+    "collectorDerived": "The collector is derived from:",
+    "regionLists": "Additional region bridge lists:",
+    "frontedNote": "Fronted transports (snowflake, meek-azure, conjure, dnstt) use the built-in defaults shipped with Tor Browser.",
+    "changelog": "Changelog",
+    "noReleases": "No releases published yet.",
+    "loadError": "Couldn't load releases.",
+    "viewReleases": "View releases on GitHub",
+    "license": "License",
+    "licenseNote": "BridgeHop is free software, licensed under the GNU General Public License v3.0 or later.",
+    "readLicense": "Read the license"
+  }
+}

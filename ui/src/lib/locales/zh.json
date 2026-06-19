@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "scan": "扫描",
+    "library": "库",
+    "history": "历史记录",
+    "settings": "设置",
+    "about": "关于"
+  },
+  "app": {
+    "tagline": "网桥扫描器"
+  },
+  "theme": {
+    "toggle": "切换主题",
+    "light": "浅色模式",
+    "dark": "深色模式"
+  },
+  "common": {
+    "loading": "加载中…",
+    "close": "关闭"
+  },
+  "scan": {
+    "title": "扫描网桥",
+    "subtitle": "检测各类传输类型的 Tor 网桥是否能从你的网络连通。",
+    "source": "来源",
+    "category": "类别",
+    "ipv6": "IPv6",
+    "ipv6Hint": "获取 IPv6 列表（仅限 collector 传输）",
+    "loadBridges": "加载网桥",
+    "bridgeLines": "网桥行",
+    "concurrency": "并发数",
+    "timeout": "超时（毫秒）",
+    "deepVerify": "深度验证（obfs4）",
+    "deepVerifyHint": "启动真实的 obfs4 客户端以确认完成实际握手（桌面端；需要 PT 二进制文件或 Tor Browser）",
+    "scanBtn": "扫描",
+    "stopBtn": "停止",
+    "cat": {
+      "tested": "已测试且活跃",
+      "fresh72h": "最新（72 小时）",
+      "full_archive": "完整存档"
+    },
+    "sum": {
+      "scanned": "已扫描",
+      "working": "可用",
+      "reachable": "可连通",
+      "fronted": "已套壳",
+      "unreachable": "不可连通"
+    },
+    "col": {
+      "status": "状态",
+      "ping": "延迟",
+      "transport": "传输方式",
+      "endpoint": "端点",
+      "detail": "详情",
+      "actions": "操作"
+    },
+    "exportWorking": "导出可用网桥",
+    "exportPlain": "导出纯文本",
+    "exportTorrc": "导出 torrc",
+    "exportJson": "导出 JSON",
+    "importFile": "导入文件",
+    "rowCopy": "复制",
+    "rowCopyTitle": "复制此网桥行",
+    "rowQrTitle": "显示 QR 码",
+    "emptyHint": "在上方粘贴网桥行并点击扫描，即可查看连通性结果。",
+    "deep": {
+      "title": "需要 obfs4 客户端",
+      "body": "深度验证会启动真实的 obfs4 客户端（lyrebird 或 obfs4proxy）以确认完成实际握手，而不仅仅是 TCP 连通性。系统中未找到该客户端。",
+      "lookHere": "请先安装它（或安装 Tor Browser），然后重新开启深度验证。BridgeHop 会在以下位置查找该客户端：",
+      "openFolder": "打开安装文件夹",
+      "getTor": "获取 Tor Browser",
+      "notNow": "暂不"
+    },
+    "msg": {
+      "addOne": "请至少添加一个网桥行。",
+      "desktopScan": "扫描功能仅在桌面应用中可用。",
+      "desktopSources": "加载来源功能仅在桌面应用中可用。",
+      "desktopDeep": "深度验证功能仅在桌面应用中可用。",
+      "desktopQr": "QR 码功能仅在桌面应用中可用。",
+      "desktopSave": "保存文件功能仅在桌面应用中可用。",
+      "loaded": "已从 {source} 加载 {count} 个网桥{cached}",
+      "cachedSuffix": "（缓存，网络不可用）",
+      "saved": "已将 {count} 个可用网桥保存到 {path}",
+      "imported": "已从文件导入 {count} 个网桥",
+      "importEmpty": "该文件中未找到网桥。",
+      "desktopImport": "导入文件功能仅在桌面应用中可用。",
+      "copiedLine": "已将网桥行复制到剪贴板",
+      "noneToExport": "没有可导出的可用网桥。"
+    }
+  },
+  "library": {
+    "title": "库",
+    "subtitle": "你扫描过的网桥，按所有已记录运行中的可靠性排序。",
+    "empty": "暂无网桥。扫描一些网桥后，它们将在此处显示并附带可靠性统计。",
+    "col": {
+      "transport": "传输方式",
+      "bridge": "网桥",
+      "uptime": "在线率",
+      "probes": "探测次数",
+      "avg": "平均",
+      "lastSeen": "最近一次发现"
+    }
+  },
+  "history": {
+    "title": "历史记录",
+    "subtitle": "过往的扫描运行。你运行的每次扫描都会记录在此。",
+    "empty": "尚未记录任何扫描。运行一次扫描即可开始建立历史记录。",
+    "col": {
+      "when": "时间",
+      "source": "来源",
+      "total": "总计",
+      "working": "可用",
+      "down": "失效",
+      "skipped": "已跳过"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "外观、语言及更多。",
+    "appearance": "外观",
+    "appearanceNote": "在浅色和深色主题之间选择。",
+    "language": "语言",
+    "languageNote": "选择显示语言。从右到左的语言将按相应方式排版。"
+  },
+  "about": {
+    "title": "关于",
+    "subtitle": "BridgeHop —— 一款轻量级 Tor 网桥连通性扫描器。",
+    "version": "版本 {version}",
+    "tagline": "检测各类传输类型的 Tor 网桥是否能从你的网络连通，内置列表、实时来源、历史记录与可靠性跟踪。",
+    "links": "链接",
+    "linkGithub": "GitHub 与问题反馈",
+    "linkDiscord": "Discord",
+    "linkKofi": "Ko-fi",
+    "linkTelegram": "Telegram",
+    "donate": "捐赠",
+    "donateIntro": "如果 BridgeHop 对你有帮助，一笔小额捐赠有助于持续维护 Hop 系列应用。",
+    "copy": "复制",
+    "copied": "已复制！",
+    "bridgeSources": "网桥来源",
+    "bridgeSourcesIntro": "BridgeHop 的内置列表和实时来源的出处。",
+    "collectorDerived": "collector 来源于：",
+    "regionLists": "额外的区域网桥列表：",
+    "frontedNote": "套壳传输（snowflake、meek-azure、conjure、dnstt）使用 Tor Browser 附带的内置默认值。",
+    "changelog": "更新日志",
+    "noReleases": "尚未发布任何版本。",
+    "loadError": "无法加载发布版本。",
+    "viewReleases": "在 GitHub 上查看发布版本",
+    "license": "许可证",
+    "licenseNote": "BridgeHop 是自由软件，依据 GNU General Public License v3.0 或更高版本授权。",
+    "readLicense": "阅读许可证"
+  }
+}

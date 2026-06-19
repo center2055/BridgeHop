@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "scan": "Analyse",
+    "library": "Bibliothèque",
+    "history": "Historique",
+    "settings": "Paramètres",
+    "about": "À propos"
+  },
+  "app": {
+    "tagline": "scanner de ponts"
+  },
+  "theme": {
+    "toggle": "Changer de thème",
+    "light": "Mode clair",
+    "dark": "Mode sombre"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "close": "Fermer"
+  },
+  "scan": {
+    "title": "Analyser les ponts",
+    "subtitle": "Vérifiez si les ponts Tor sont accessibles depuis votre réseau pour tous les types de transport.",
+    "source": "Source",
+    "category": "Catégorie",
+    "ipv6": "IPv6",
+    "ipv6Hint": "Récupérer la liste IPv6 (transports du collector uniquement)",
+    "loadBridges": "Charger les ponts",
+    "bridgeLines": "Lignes de pont",
+    "concurrency": "Concurrence",
+    "timeout": "Délai d'attente (ms)",
+    "deepVerify": "Vérification approfondie (obfs4)",
+    "deepVerifyHint": "Lancer le vrai client obfs4 pour confirmer un véritable handshake (bureau ; nécessite le binaire PT ou Tor Browser)",
+    "scanBtn": "Analyser",
+    "stopBtn": "Arrêter",
+    "cat": {
+      "tested": "Testés et actifs",
+      "fresh72h": "Récents (72 h)",
+      "full_archive": "Archive complète"
+    },
+    "sum": {
+      "scanned": "analysés",
+      "working": "fonctionnels",
+      "reachable": "accessibles",
+      "fronted": "frontés",
+      "unreachable": "inaccessibles"
+    },
+    "col": {
+      "status": "Statut",
+      "ping": "Ping",
+      "transport": "Transport",
+      "endpoint": "Point d'accès",
+      "detail": "Détail",
+      "actions": "Actions"
+    },
+    "exportWorking": "Exporter les ponts fonctionnels",
+    "exportPlain": "Exporter en texte brut",
+    "exportTorrc": "Exporter en torrc",
+    "exportJson": "Exporter en JSON",
+    "importFile": "Importer un fichier",
+    "rowCopy": "Copier",
+    "rowCopyTitle": "Copier cette ligne de pont",
+    "rowQrTitle": "Afficher le code QR",
+    "emptyHint": "Collez des lignes de pont ci-dessus et cliquez sur Analyser pour voir les résultats d'accessibilité.",
+    "deep": {
+      "title": "Client obfs4 requis",
+      "body": "La vérification approfondie lance le vrai client obfs4 (lyrebird ou obfs4proxy) pour confirmer un véritable handshake, pas seulement l'accessibilité TCP. Aucun n'a été trouvé sur votre système.",
+      "lookHere": "Installez-le (ou Tor Browser), puis réactivez la vérification approfondie. BridgeHop recherche le client ici :",
+      "openFolder": "Ouvrir le dossier d'installation",
+      "getTor": "Obtenir Tor Browser",
+      "notNow": "Pas maintenant"
+    },
+    "msg": {
+      "addOne": "Ajoutez au moins une ligne de pont.",
+      "desktopScan": "L'analyse n'est disponible que dans l'application de bureau.",
+      "desktopSources": "Le chargement des sources n'est disponible que dans l'application de bureau.",
+      "desktopDeep": "La vérification approfondie n'est disponible que dans l'application de bureau.",
+      "desktopQr": "Les codes QR ne sont disponibles que dans l'application de bureau.",
+      "desktopSave": "L'enregistrement de fichiers n'est disponible que dans l'application de bureau.",
+      "loaded": "{count} ponts chargés depuis {source}{cached}",
+      "cachedSuffix": " (en cache, réseau indisponible)",
+      "saved": "{count} ponts fonctionnels enregistrés dans {path}",
+      "imported": "{count} ponts importés depuis le fichier",
+      "importEmpty": "Aucun pont trouvé dans ce fichier.",
+      "desktopImport": "L'importation de fichiers n'est disponible que dans l'application de bureau.",
+      "copiedLine": "Ligne de pont copiée dans le presse-papiers",
+      "noneToExport": "Aucun pont fonctionnel à exporter."
+    }
+  },
+  "library": {
+    "title": "Bibliothèque",
+    "subtitle": "Les ponts que vous avez analysés, classés par fiabilité sur l'ensemble des exécutions enregistrées.",
+    "empty": "Aucun pont pour l'instant. Analysez quelques ponts et ils apparaîtront ici avec leurs statistiques de fiabilité.",
+    "col": {
+      "transport": "Transport",
+      "bridge": "Pont",
+      "uptime": "Disponibilité",
+      "probes": "Sondages",
+      "avg": "Moy.",
+      "lastSeen": "Vu pour la dernière fois"
+    }
+  },
+  "history": {
+    "title": "Historique",
+    "subtitle": "Exécutions d'analyses passées. Chaque analyse que vous lancez est enregistrée ici.",
+    "empty": "Aucune analyse enregistrée pour l'instant. Lancez une analyse pour commencer à constituer l'historique.",
+    "col": {
+      "when": "Quand",
+      "source": "Source",
+      "total": "Total",
+      "working": "Fonctionnels",
+      "down": "Hors service",
+      "skipped": "Ignorés"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Apparence, langue et plus encore.",
+    "appearance": "Apparence",
+    "appearanceNote": "Choisissez entre le thème clair et le thème sombre.",
+    "language": "Langue",
+    "languageNote": "Choisissez la langue d'affichage. Les langues qui s'écrivent de droite à gauche sont mises en page en conséquence."
+  },
+  "about": {
+    "title": "À propos",
+    "subtitle": "BridgeHop - un scanner léger d'accessibilité des ponts Tor.",
+    "version": "Version {version}",
+    "tagline": "Vérifiez si les ponts Tor sont accessibles depuis votre réseau pour chaque type de transport, avec des listes intégrées, des sources en direct, un historique et un suivi de la fiabilité.",
+    "links": "Liens",
+    "linkGithub": "GitHub et problèmes",
+    "linkDiscord": "Discord",
+    "linkKofi": "Ko-fi",
+    "linkTelegram": "Telegram",
+    "donate": "Faire un don",
+    "donateIntro": "Si BridgeHop vous est utile, un petit don contribue à maintenir les applications Hop.",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "bridgeSources": "Sources de ponts",
+    "bridgeSourcesIntro": "D'où proviennent les listes intégrées et les sources en direct de BridgeHop.",
+    "collectorDerived": "Le collector est dérivé de :",
+    "regionLists": "Listes de ponts régionales supplémentaires :",
+    "frontedNote": "Les transports frontés (snowflake, meek-azure, conjure, dnstt) utilisent les valeurs par défaut intégrées fournies avec Tor Browser.",
+    "changelog": "Journal des modifications",
+    "noReleases": "Aucune version publiée pour l'instant.",
+    "loadError": "Impossible de charger les versions.",
+    "viewReleases": "Voir les versions sur GitHub",
+    "license": "Licence",
+    "licenseNote": "BridgeHop est un logiciel libre, sous licence GNU General Public License v3.0 ou ultérieure.",
+    "readLicense": "Lire la licence"
+  }
+}

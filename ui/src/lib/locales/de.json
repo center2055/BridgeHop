@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "scan": "Scannen",
+    "library": "Bibliothek",
+    "history": "Verlauf",
+    "settings": "Einstellungen",
+    "about": "Über"
+  },
+  "app": {
+    "tagline": "Bridge-Scanner"
+  },
+  "theme": {
+    "toggle": "Design umschalten",
+    "light": "Heller Modus",
+    "dark": "Dunkler Modus"
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "close": "Schließen"
+  },
+  "scan": {
+    "title": "Bridges scannen",
+    "subtitle": "Prüfen Sie, ob Tor-Bridges über alle Transporttypen aus Ihrem Netzwerk erreichbar sind.",
+    "source": "Quelle",
+    "category": "Kategorie",
+    "ipv6": "IPv6",
+    "ipv6Hint": "Die IPv6-Liste abrufen (nur Collector-Transporte)",
+    "loadBridges": "Bridges laden",
+    "bridgeLines": "Bridge-Zeilen",
+    "concurrency": "Parallelität",
+    "timeout": "Zeitlimit (ms)",
+    "deepVerify": "Tiefenprüfung (obfs4)",
+    "deepVerifyHint": "Den echten obfs4-Client starten, um einen tatsächlichen Handshake zu bestätigen (Desktop; erfordert die PT-Binärdatei oder Tor Browser)",
+    "scanBtn": "Scannen",
+    "stopBtn": "Stopp",
+    "cat": {
+      "tested": "Getestet & aktiv",
+      "fresh72h": "Neu (72 Std.)",
+      "full_archive": "Vollständiges Archiv"
+    },
+    "sum": {
+      "scanned": "gescannt",
+      "working": "funktionierend",
+      "reachable": "erreichbar",
+      "fronted": "fronted",
+      "unreachable": "nicht erreichbar"
+    },
+    "col": {
+      "status": "Status",
+      "ping": "Ping",
+      "transport": "Transport",
+      "endpoint": "Endpunkt",
+      "detail": "Detail",
+      "actions": "Aktionen"
+    },
+    "exportWorking": "Funktionierende Bridges exportieren",
+    "exportPlain": "Als Klartext exportieren",
+    "exportTorrc": "Als torrc exportieren",
+    "exportJson": "Als JSON exportieren",
+    "importFile": "Datei importieren",
+    "rowCopy": "Kopieren",
+    "rowCopyTitle": "Diese Bridge-Zeile kopieren",
+    "rowQrTitle": "QR-Code anzeigen",
+    "emptyHint": "Fügen Sie oben Bridge-Zeilen ein und klicken Sie auf Scannen, um die Erreichbarkeitsergebnisse zu sehen.",
+    "deep": {
+      "title": "obfs4-Client erforderlich",
+      "body": "Die Tiefenprüfung startet den echten obfs4-Client (lyrebird oder obfs4proxy), um einen tatsächlichen Handshake zu bestätigen, nicht nur die TCP-Erreichbarkeit. Auf Ihrem System wurde keiner gefunden.",
+      "lookHere": "Installieren Sie ihn (oder Tor Browser) und aktivieren Sie die Tiefenprüfung erneut. BridgeHop sucht den Client hier:",
+      "openFolder": "Installationsordner öffnen",
+      "getTor": "Tor Browser herunterladen",
+      "notNow": "Nicht jetzt"
+    },
+    "msg": {
+      "addOne": "Fügen Sie mindestens eine Bridge-Zeile hinzu.",
+      "desktopScan": "Das Scannen ist nur in der Desktop-App verfügbar.",
+      "desktopSources": "Das Laden von Quellen ist nur in der Desktop-App verfügbar.",
+      "desktopDeep": "Die Tiefenprüfung ist nur in der Desktop-App verfügbar.",
+      "desktopQr": "QR-Codes sind nur in der Desktop-App verfügbar.",
+      "desktopSave": "Das Speichern von Dateien ist nur in der Desktop-App verfügbar.",
+      "loaded": "{count} Bridges aus {source} geladen{cached}",
+      "cachedSuffix": " (zwischengespeichert, Netzwerk nicht verfügbar)",
+      "saved": "{count} funktionierende Bridges in {path} gespeichert",
+      "imported": "{count} Bridges aus der Datei importiert",
+      "importEmpty": "In dieser Datei wurden keine Bridges gefunden.",
+      "desktopImport": "Das Importieren von Dateien ist nur in der Desktop-App verfügbar.",
+      "copiedLine": "Bridge-Zeile in die Zwischenablage kopiert",
+      "noneToExport": "Keine funktionierenden Bridges zum Exportieren."
+    }
+  },
+  "library": {
+    "title": "Bibliothek",
+    "subtitle": "Von Ihnen gescannte Bridges, geordnet nach Zuverlässigkeit über alle aufgezeichneten Durchläufe hinweg.",
+    "empty": "Noch keine Bridges. Scannen Sie einige Bridges, dann erscheinen sie hier mit Zuverlässigkeitsstatistiken.",
+    "col": {
+      "transport": "Transport",
+      "bridge": "Bridge",
+      "uptime": "Verfügbarkeit",
+      "probes": "Prüfungen",
+      "avg": "Durchschn.",
+      "lastSeen": "Zuletzt gesehen"
+    }
+  },
+  "history": {
+    "title": "Verlauf",
+    "subtitle": "Vergangene Scan-Durchläufe. Jeder ausgeführte Scan wird hier aufgezeichnet.",
+    "empty": "Noch keine Scans aufgezeichnet. Führen Sie einen Scan aus, um den Verlauf aufzubauen.",
+    "col": {
+      "when": "Wann",
+      "source": "Quelle",
+      "total": "Gesamt",
+      "working": "Funktionierend",
+      "down": "Ausgefallen",
+      "skipped": "Übersprungen"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Erscheinungsbild, Sprache und mehr.",
+    "appearance": "Erscheinungsbild",
+    "appearanceNote": "Wählen Sie zwischen dem hellen und dem dunklen Design.",
+    "language": "Sprache",
+    "languageNote": "Wählen Sie die Anzeigesprache. Sprachen mit Schreibrichtung von rechts nach links werden entsprechend angeordnet."
+  },
+  "about": {
+    "title": "Über",
+    "subtitle": "BridgeHop - ein leichtgewichtiger Scanner für die Erreichbarkeit von Tor-Bridges.",
+    "version": "Version {version}",
+    "tagline": "Prüfen Sie, ob Tor-Bridges über alle Transporttypen aus Ihrem Netzwerk erreichbar sind - mit integrierten Listen, Live-Quellen, Verlauf und Zuverlässigkeitsverfolgung.",
+    "links": "Links",
+    "linkGithub": "GitHub & Probleme",
+    "linkDiscord": "Discord",
+    "linkKofi": "Ko-fi",
+    "linkTelegram": "Telegram",
+    "donate": "Spenden",
+    "donateIntro": "Wenn BridgeHop für Sie nützlich ist, hilft eine kleine Spende dabei, die Hop-Apps weiter zu pflegen.",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "bridgeSources": "Bridge-Quellen",
+    "bridgeSourcesIntro": "Woher die integrierten Listen und Live-Quellen von BridgeHop stammen.",
+    "collectorDerived": "Der Collector wird abgeleitet aus:",
+    "regionLists": "Zusätzliche regionale Bridge-Listen:",
+    "frontedNote": "Fronted-Transporte (snowflake, meek-azure, conjure, dnstt) verwenden die mit Tor Browser ausgelieferten integrierten Standardwerte.",
+    "changelog": "Änderungsprotokoll",
+    "noReleases": "Noch keine Releases veröffentlicht.",
+    "loadError": "Releases konnten nicht geladen werden.",
+    "viewReleases": "Releases auf GitHub ansehen",
+    "license": "Lizenz",
+    "licenseNote": "BridgeHop ist freie Software, lizenziert unter der GNU General Public License v3.0 oder höher.",
+    "readLicense": "Lizenz lesen"
+  }
+}
