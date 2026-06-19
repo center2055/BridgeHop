@@ -211,10 +211,10 @@ pub fn open_pt_dir() -> Result<(), String> {
 }
 
 fn open_target(target: &str) -> Result<(), String> {
+    // explorer.exe is a GUI process, so it opens URLs (in the default browser) and folders
+    // without flashing a console window the way `cmd /C start` does.
     #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("cmd")
-        .args(["/C", "start", "", target])
-        .spawn();
+    let result = std::process::Command::new("explorer.exe").arg(target).spawn();
     #[cfg(target_os = "macos")]
     let result = std::process::Command::new("open").arg(target).spawn();
     #[cfg(all(unix, not(target_os = "macos")))]
