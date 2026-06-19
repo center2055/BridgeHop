@@ -10,13 +10,32 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  # All binaries are published as assets on this draft release. Release assets are stored
+  # separately from Actions artifacts, so they don't count against the artifact storage quota.
+  RELEASE_TAG: v0.1.0
 
 jobs:
-  # Desktop bundles (Windows .exe/.msi, macOS .dmg/.app, Linux .deb/.AppImage/.rpm).
-  # On a tag push these are attached to a draft GitHub Release; every run also uploads them as
-  # downloadable workflow artifacts (so `workflow_dispatch` produces binaries without cutting a tag).
+  # Pre-create one draft release so the matrix jobs below all upload to the same place (and there's
+  # no race to create it). A draft release does not create the git tag until it is published.
+  release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure draft release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft --target main \
+              --title "BridgeHop $RELEASE_TAG" \
+              --notes "Automated build: desktop bundles (Windows / Linux / macOS), CLI binaries for each OS, and an Android arm64 APK (debug-signed, sideloadable)."
+          fi
+
+  # Desktop bundles: Windows .exe/.msi, macOS .dmg/.app, Linux .deb/.AppImage/.rpm.
   app:
     name: App bundle — ${{ matrix.os }}
+    needs: release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -38,33 +57,26 @@ jobs:
         run: |
           npm ci
           npm --prefix ui ci
-      - name: Build and bundle (Tauri)
+      - name: Build and upload bundles to the draft release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # Create/attach to a draft release only on tag pushes; otherwise just build.
-          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          releaseName: 'BridgeHop ${{ github.ref_name }}'
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: 'BridgeHop ${{ env.RELEASE_TAG }}'
           releaseDraft: true
           prerelease: false
           projectPath: .
-      - name: Upload desktop bundles
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridgehop-${{ matrix.os }}
-          path: |
-            target/release/bundle/**/*
-          if-no-files-found: warn
 
-  # Android APK. Builds a debug-signed, sideloadable universal APK (no release keystore required).
+  # Android APK. Debug-signed, sideloadable, arm64-v8a (covers essentially all real phones).
   android:
     name: Android APK
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Debug native libs are large and unstripped; building them filled the runner's small disk.
-      # Reclaim the preinstalled toolchains we don't use (but keep the Android SDK and tool cache).
+      # Debug native libs are large and unstripped; reclaim unused preinstalled toolchains so the
+      # build doesn't run out of disk (keep the Android SDK and the hosted tool cache).
       - name: Free disk space
         uses: jlumbroso/free-disk-space@main
         with:
@@ -102,23 +114,25 @@ jobs:
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-      # Build a single ABI (arm64-v8a) — covers essentially all real Android phones and keeps the
-      # debug build within the runner's disk and time budget.
       - name: Build APK (debug-signed, arm64)
         run: npm run tauri -- android build --apk --debug --target aarch64
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridgehop-android-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
-          if-no-files-found: error
+      - name: Upload APK to the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -n1)
+          echo "Found APK: $apk"
+          cp "$apk" "bridgehop-${RELEASE_TAG}-android-arm64.apk"
+          gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-android-arm64.apk" \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
-  # Standalone CLI binary per OS.
+  # Standalone CLI binary per OS, uploaded to the draft release.
   cli:
     name: CLI binary — ${{ matrix.os }}
+    needs: release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -130,11 +144,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build CLI (release)
         run: cargo build --release -p bridgehop-cli
-      - name: Upload CLI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridgehop-cli-${{ matrix.os }}
-          path: |
-            target/release/bridgehop
-            target/release/bridgehop.exe
-          if-no-files-found: ignore
+      - name: Upload CLI to the draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp target/release/bridgehop.exe "bridgehop-${RELEASE_TAG}-windows-x86_64.exe"
+            gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-windows-x86_64.exe" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            os="linux"; [ "$RUNNER_OS" = "macOS" ] && os="macos"
+            cp target/release/bridgehop "bridgehop-${RELEASE_TAG}-${os}-x86_64"
+            gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-${os}-x86_64" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          fi
