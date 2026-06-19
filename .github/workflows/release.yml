@@ -73,10 +73,14 @@ jobs:
     name: Android APK
     needs: release
     runs-on: ubuntu-latest
+    # When the signing secrets are present we build a small, signed release APK; otherwise we fall
+    # back to a debug-signed APK so the workflow still produces something installable.
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
-      # Debug native libs are large and unstripped; reclaim unused preinstalled toolchains so the
-      # build doesn't run out of disk (keep the Android SDK and the hosted tool cache).
+      # Native libs can be large; reclaim unused preinstalled toolchains so the build doesn't run
+      # out of disk (keep the Android SDK and the hosted tool cache).
       - name: Free disk space
         uses: jlumbroso/free-disk-space@main
         with:
@@ -114,7 +118,32 @@ jobs:
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
-      - name: Build APK (debug-signed, arm64)
+      # The generated app/build.gradle.kts has no release signing config; write keystore.properties
+      # from the secrets and inject the signing config. Only runs when a keystore is configured.
+      - name: Configure release signing
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          ks="$RUNNER_TEMP/bridgehop-release.jks"
+          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > "$ks"
+          {
+            echo "storeFile=$ks"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "password=$KEYSTORE_PASSWORD"
+          } > src-tauri/gen/android/keystore.properties
+          python3 .github/scripts/patch-android-signing.py
+      - name: Build signed release APK (arm64)
+        if: env.HAS_KEYSTORE == 'true'
+        run: npm run tauri -- android build --apk --target aarch64
+        env:
+          NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+      - name: Build debug APK (no keystore configured)
+        if: env.HAS_KEYSTORE != 'true'
         run: npm run tauri -- android build --apk --debug --target aarch64
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
@@ -123,7 +152,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -n1)
+          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | sort | tail -n1)
           echo "Found APK: $apk"
           cp "$apk" "bridgehop-${RELEASE_TAG}-android-arm64.apk"
           gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-android-arm64.apk" \
