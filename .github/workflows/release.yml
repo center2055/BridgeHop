@@ -154,8 +154,10 @@ jobs:
             gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-windows-x86_64.exe" \
               --repo "$GITHUB_REPOSITORY" --clobber
           else
-            os="linux"; [ "$RUNNER_OS" = "macOS" ] && os="macos"
-            cp target/release/bridgehop "bridgehop-${RELEASE_TAG}-${os}-x86_64"
-            gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-${os}-x86_64" \
+            # macos-latest runners are Apple Silicon (arm64); ubuntu is x86_64.
+            os="linux"; arch="x86_64"
+            if [ "$RUNNER_OS" = "macOS" ]; then os="macos"; arch="arm64"; fi
+            cp target/release/bridgehop "bridgehop-${RELEASE_TAG}-${os}-${arch}"
+            gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-${os}-${arch}" \
               --repo "$GITHUB_REPOSITORY" --clobber
           fi

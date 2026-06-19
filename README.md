@@ -64,6 +64,21 @@ target/release/bridgehop scan --source obfs4 --category tested
 cargo test --workspace --exclude bridgehop-app
 ```
 
+### Android
+
+BridgeHop also builds for Android (arm64). The desktop-only pieces — native file
+dialogs and deep verify, which spawns pluggable-transport clients — are compiled out;
+everything else (scanning every transport, live sources, history, QR) works on mobile.
+
+Requires the Android SDK + NDK and a JDK 17. With `ANDROID_HOME` and `NDK_HOME` set:
+
+```sh
+rustup target add aarch64-linux-android
+npm run tauri -- android init
+npm run tauri -- android build --apk --debug --target aarch64
+# → src-tauri/gen/android/app/build/outputs/apk/.../*.apk
+```
+
 ## CLI usage
 
 ```sh
@@ -78,9 +93,10 @@ bridgehop history --reliability                # per-bridge uptime leaderboard
 
 ## Releases
 
-Pushing a `v*` tag runs the release workflow, which bundles the app for Windows, Linux, and
-macOS and builds the CLI for each platform. Code signing is left to the maintainer (configure
-the relevant secrets in the workflow).
+The release workflow (run on a `v*` tag or manually) builds the desktop bundles for Windows,
+Linux, and macOS, the CLI for each platform, and an Android arm64 APK, and uploads them all to a
+draft GitHub Release. Code signing is left to the maintainer (configure the relevant secrets in
+the workflow); the Android APK is debug-signed for sideloading.
 
 ## License
 
