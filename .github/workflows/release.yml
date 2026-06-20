@@ -129,7 +129,9 @@ jobs:
         run: |
           set -euo pipefail
           ks="$RUNNER_TEMP/bridgehop-release.jks"
-          printf '%s' "$KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > "$ks"
+          # Keep only base64-alphabet chars before decoding, so any stray whitespace/BOM/encoding
+          # artifact from how the secret was stored can't break the decode.
+          printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=' | base64 -d > "$ks"
           {
             echo "storeFile=$ks"
             echo "keyAlias=$KEY_ALIAS"
