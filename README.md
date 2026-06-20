@@ -2,6 +2,8 @@
 
 A lightweight, cross-platform **Tor bridge reachability scanner** with a modern UI.
 
+![BridgeHop](docs/images/bridgehop-scan.png)
+
 BridgeHop tests whether Tor bridges are reachable from your network across **all bridge
 types** — `vanilla`, `obfs4`, `webtunnel`, `snowflake`, `meek`, `conjure`, and `dnstt` — so
 you can quickly find bridges that actually work where you are. It ships with built-in bridge
