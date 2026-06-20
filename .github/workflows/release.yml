@@ -118,6 +118,9 @@ jobs:
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+      # Regenerate the launcher icons from the app icon so the APK never ships the default logo.
+      - name: Apply app icon
+        run: npm run tauri -- icon branding/source.png
       # The generated app/build.gradle.kts has no release signing config; write keystore.properties
       # from the secrets and inject the signing config. Only runs when a keystore is configured.
       - name: Configure release signing

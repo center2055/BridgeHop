@@ -18,6 +18,9 @@ src-tauri/resources/pt/
 src-tauri/resources/geo/
 *.mmdb
 
+# Python bytecode cache (from CI helper scripts)
+__pycache__/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

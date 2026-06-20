@@ -28,6 +28,8 @@
     "active": true,
     "targets": "all",
     "publisher": "center2055",
+    "homepage": "https://github.com/center2055/BridgeHop",
+    "license": "GPL-3.0-or-later",
     "category": "Utility",
     "copyright": "Copyright © 2026 center2055. GPL-3.0-or-later.",
     "shortDescription": "Tor bridge reachability scanner",
