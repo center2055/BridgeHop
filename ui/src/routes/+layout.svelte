@@ -39,13 +39,6 @@
 
 <div class="app">
   <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-text">
-        <strong>BridgeHop</strong>
-        <span>{t('app.tagline')}</span>
-      </div>
-    </div>
-
     <nav>
       {#each nav as item (item.href)}
         <a href={item.href} class="nav-link" class:active={isActive(item.href)}>
@@ -75,26 +68,6 @@
     padding: 18px 14px;
     background: var(--surface);
     border-right: 1px solid var(--border);
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 4px 8px 18px;
-  }
-  .brand-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.2;
-  }
-  .brand-text strong {
-    font-size: 15.5px;
-    font-weight: 700;
-  }
-  .brand-text span {
-    font-size: 11.5px;
-    color: var(--text-subtle);
   }
 
   nav {
@@ -146,9 +119,6 @@
       border-right: none;
       border-top: 1px solid var(--border);
       padding: 4px;
-    }
-    .brand {
-      display: none;
     }
     nav {
       flex-direction: row;
