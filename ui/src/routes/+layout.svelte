@@ -2,9 +2,11 @@
   import '../app.css';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import Icon from '$lib/Icon.svelte';
   import { t, initLocale } from '$lib/i18n.svelte';
   import { initTheme } from '$lib/theme.svelte';
+  import { inTauri } from '$lib/ipc';
 
   let { children } = $props();
 
@@ -19,6 +21,13 @@
   onMount(() => {
     initLocale();
     initTheme();
+
+    // The window starts hidden (no blank/white flash); reveal it now that the UI is rendered.
+    if (inTauri()) {
+      getCurrentWindow()
+        .show()
+        .catch(() => {});
+    }
 
     // Suppress the webview's default right-click menu (Back / Reload / Save as / Print),
     // while keeping it on editable fields so paste still works in the bridge input.

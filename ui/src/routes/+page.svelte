@@ -801,11 +801,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     .col-actions {
       width: auto;
     }
+    /* Stack Copy / QR vertically so both fit even with long localized labels (e.g. Russian). */
     .row-actions {
-      gap: 5px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
     }
     .qr-btn {
-      padding: 3px 7px;
+      padding: 4px 7px;
     }
   }
 </style>

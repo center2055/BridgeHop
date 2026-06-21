@@ -23,13 +23,31 @@ pub fn run() {
         .manage(AppState::default())
         .setup(|_app| {
             // On mobile the per-OS data location isn't discoverable via `directories`, so hand the
-            // core engine the app's sandboxed data dir for its SQLite store and source cache.
+            // core engine the app's sandboxed data dir for its SQLite store and source cache, and
+            // show the window right away (there's no white-flash concern on mobile).
             #[cfg(mobile)]
             {
                 use tauri::Manager;
                 if let Ok(dir) = _app.path().app_data_dir() {
                     bridgehop_core::paths::set_data_dir(dir);
                 }
+                if let Some(w) = _app.get_webview_window("main") {
+                    let _ = w.show();
+                }
+            }
+            // Desktop keeps the window hidden until the front end has rendered (avoids the blank/
+            // white flash) and shows it from onMount. This is a safety net so the window still
+            // appears even if that call never fires.
+            #[cfg(desktop)]
+            {
+                use tauri::Manager;
+                let handle = _app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_secs(8));
+                    if let Some(w) = handle.get_webview_window("main") {
+                        let _ = w.show();
+                    }
+                });
             }
             Ok(())
         })

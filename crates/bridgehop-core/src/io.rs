@@ -54,7 +54,11 @@ pub fn import(text: &str) -> Vec<Bridge> {
             return parse_bridge_lines(raws.iter().map(String::as_str));
         }
     }
-    parse_bridge_lines(text.lines())
+    // Normalize line endings before splitting. `str::lines()` only splits on `\n`/`\r\n`, so a
+    // file saved with bare CR (or mixed) endings would collapse many bridges into a single line
+    // and only the first would be parsed — exactly the "only a few got scanned" symptom.
+    let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+    parse_bridge_lines(normalized.lines())
 }
 
 fn import_json(text: &str) -> Option<Vec<String>> {
@@ -119,6 +123,16 @@ mod tests {
         let text = "# a list\n1.2.3.4:443 A7E7616C91B2FD83005B986A816EE9365F1360F4\n\n";
         let back = import(text);
         assert_eq!(back.len(), 1);
+    }
+
+    #[test]
+    fn import_handles_cr_and_crlf_line_endings() {
+        let fp = "A7E7616C91B2FD83005B986A816EE9365F1360F4";
+        // Bare CR (old/odd editors) and CRLF must both split into separate bridges, not collapse.
+        let cr = format!("1.1.1.1:443 {fp}\r2.2.2.2:443 {fp}\r3.3.3.3:443 {fp}");
+        assert_eq!(import(&cr).len(), 3);
+        let crlf = format!("1.1.1.1:443 {fp}\r\n2.2.2.2:443 {fp}\r\n3.3.3.3:443 {fp}");
+        assert_eq!(import(&crlf).len(), 3);
     }
 
     #[cfg(feature = "qr")]
