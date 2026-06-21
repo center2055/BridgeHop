@@ -786,10 +786,26 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       display: none;
     }
     .endpoint {
-      max-width: 50vw;
+      max-width: 34vw;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+    /* Tighten the table so the Copy / QR actions stay on-screen (were clipped on phones). */
+    thead th,
+    tbody td {
+      padding: 9px 8px;
+    }
+    .col-ping,
+    .col-status,
+    .col-actions {
+      width: auto;
+    }
+    .row-actions {
+      gap: 5px;
+    }
+    .qr-btn {
+      padding: 3px 7px;
     }
   }
 </style>

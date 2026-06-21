@@ -4,6 +4,21 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script>
+      // Apply the saved theme before first paint so the app doesn't flash the light/white
+      // default while the JS bundle loads (mirrors initTheme in theme.svelte.ts).
+      (function () {
+        try {
+          var t = localStorage.getItem('bridgehop-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = window.matchMedia && !window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   # All binaries are published as assets on this draft release. Release assets are stored
   # separately from Actions artifacts, so they don't count against the artifact storage quota.
-  RELEASE_TAG: v1.0.1
+  RELEASE_TAG: v1.0.2
 
 jobs:
   # Pre-create one draft release so the matrix jobs below all upload to the same place (and there's
@@ -67,6 +67,17 @@ jobs:
           releaseDraft: true
           prerelease: false
           projectPath: .
+      # Portable Windows build: the raw exe runs standalone with no installer (like OnionHop's
+      # portable). tauri-action already compiled it; just publish it as a release asset.
+      - name: Upload portable Windows exe
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp target/release/bridgehop-app.exe "BridgeHop-${RELEASE_TAG}-portable-x64.exe"
+          gh release upload "$RELEASE_TAG" "BridgeHop-${RELEASE_TAG}-portable-x64.exe" \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
   # Android APK. Debug-signed, sideloadable, arm64-v8a (covers essentially all real phones).
   android:
