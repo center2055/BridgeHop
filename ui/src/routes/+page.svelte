@@ -414,7 +414,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         </tr>
       </thead>
       <tbody>
-        {#each results as r (r.bridge_id + r.probed_host + r.probed_port)}
+        {#each results as r, i (i)}
           <tr>
             <td class="col-ping mono">{r.ping_ms != null ? `${r.ping_ms} ms` : '-'}</td>
             <td><span class={badgeClass(r.reachability)}>{badgeLabel(r.reachability)}</span></td>
