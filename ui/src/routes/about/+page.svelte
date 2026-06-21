@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getVersion } from '@tauri-apps/api/app';
   import Icon from '$lib/Icon.svelte';
   import BrandIcon from '$lib/BrandIcon.svelte';
   import { openExternal, inTauri } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
 
-  const VERSION = '0.1.0';
+  // Falls back to this in the browser dev preview; in the app it's read from the build at runtime.
+  let version = $state('1.0.4');
   const BTC = 'bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2';
 
   let copied = $state(false);
@@ -44,6 +46,13 @@
   }
 
   onMount(async () => {
+    if (inTauri()) {
+      try {
+        version = await getVersion();
+      } catch {
+        /* keep fallback */
+      }
+    }
     try {
       const res = await fetch('https://api.github.com/repos/center2055/BridgeHop/releases', {
         headers: { Accept: 'application/vnd.github+json' }
@@ -90,7 +99,7 @@
       </div>
       <div class="hero-text">
         <strong>BridgeHop</strong>
-        <span class="version">{t('about.version', { version: VERSION })}</span>
+        <span class="version">{t('about.version', { version })}</span>
         <span class="tagline">{t('about.tagline')}</span>
       </div>
     </section>

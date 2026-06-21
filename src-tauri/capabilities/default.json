@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Core permissions for the main BridgeHop window.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-show"]
+  "permissions": ["core:default", "core:window:allow-show", "core:app:allow-version"]
 }
