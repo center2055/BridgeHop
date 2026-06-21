@@ -10,6 +10,14 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Some Linux GPU/driver combos (and the AppImage) crash WebKitGTK's DMABUF renderer with
+    // "EGL_BAD_PARAMETER", leaving a blank white window. Fall back to the non-DMABUF renderer
+    // unless the user already set this, which fixes the blank screen at a tiny perf cost.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())

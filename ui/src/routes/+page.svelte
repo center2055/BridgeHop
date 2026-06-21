@@ -28,12 +28,25 @@
 1.1.1.1:443 0123456789ABCDEF0123456789ABCDEF01234567
 obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1JI/vO6V6m/24odNwesD iat-mode=1`;
 
-  let linesText = $state(SAMPLE);
+  // Persist the scan across navigation: leaving for Library and coming back would otherwise
+  // remount this page and wipe the results. We stash the input/results/source in sessionStorage.
+  const SCAN_KEY = 'bridgehop-scan';
+  function loadSaved(): { linesText?: string; results?: ScanResult[]; loadedSource?: string | null } | null {
+    if (typeof sessionStorage === 'undefined') return null;
+    try {
+      return JSON.parse(sessionStorage.getItem(SCAN_KEY) ?? 'null');
+    } catch {
+      return null;
+    }
+  }
+  const saved = loadSaved();
+
+  let linesText = $state(saved?.linesText ?? SAMPLE);
   let workers = $state(16);
   let timeoutMs = $state(3000);
   let deepVerify = $state(false);
   let scanning = $state(false);
-  let results = $state<ScanResult[]>([]);
+  let results = $state<ScanResult[]>(saved?.results ?? []);
   let error = $state<string | null>(null);
   let unlisten: (() => void) | null = null;
 
@@ -43,7 +56,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let sourceIpv6 = $state(false);
   let loadingSource = $state(false);
   let sourceInfo = $state<string | null>(null);
-  let loadedSource = $state<string | null>(null);
+  let loadedSource = $state<string | null>(saved?.loadedSource ?? null);
 
   // QR modal
   let qrOpen = $state(false);
@@ -79,6 +92,16 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   });
 
   onDestroy(() => unlisten?.());
+
+  // Save the scan whenever it changes, so returning to this page restores it.
+  $effect(() => {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+      sessionStorage.setItem(SCAN_KEY, JSON.stringify({ linesText, results, loadedSource }));
+    } catch {
+      /* ignore storage quota / serialization errors */
+    }
+  });
 
   async function runScan() {
     if (scanning) return;
@@ -382,8 +405,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <table>
       <thead>
         <tr>
+          <th class="col-ping">{t('scan.col.ping')}</th>
           <th class="col-status">{t('scan.col.status')}</th>
-          <th class="col-ping hide-sm">{t('scan.col.ping')}</th>
           <th class="hide-sm">{t('scan.col.transport')}</th>
           <th>{t('scan.col.endpoint')}</th>
           <th class="hide-sm">{t('scan.col.detail')}</th>
@@ -393,8 +416,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       <tbody>
         {#each results as r (r.bridge_id + r.probed_host + r.probed_port)}
           <tr>
+            <td class="col-ping mono">{r.ping_ms != null ? `${r.ping_ms} ms` : '-'}</td>
             <td><span class={badgeClass(r.reachability)}>{badgeLabel(r.reachability)}</span></td>
-            <td class="col-ping mono hide-sm">{r.ping_ms != null ? `${r.ping_ms} ms` : '-'}</td>
             <td class="hide-sm"><span class="chip">{r.transport}</span></td>
             <td class="mono endpoint">{r.probed_host}:{r.probed_port}</td>
             <td class="detail hide-sm">

@@ -59,6 +59,8 @@
     display: grid;
     grid-template-columns: 232px 1fr;
     height: 100vh;
+    /* dvh = the *visible* viewport, so the mobile bottom nav isn't pushed off-screen. */
+    height: 100dvh;
     overflow: hidden;
   }
 
@@ -118,7 +120,8 @@
       align-items: stretch;
       border-right: none;
       border-top: 1px solid var(--border);
-      padding: 4px;
+      /* Extra bottom padding clears the Android gesture/system nav bar so the tabs are tappable. */
+      padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
     }
     nav {
       flex-direction: row;
