@@ -96,7 +96,7 @@ struct ScanArgs {
     /// Deep-verify working bridges by launching the real pluggable-transport client (obfs4).
     #[arg(long)]
     deep: bool,
-    /// Output format.
+    /// Output format. `table`/`json` cover every bridge; `plain`/`torrc` emit only the working ones.
     #[arg(long, value_enum, default_value_t = OutputFormat::Table)]
     format: OutputFormat,
 }
@@ -124,6 +124,10 @@ struct SourcesArgs {
 enum OutputFormat {
     Table,
     Json,
+    /// Only the working bridges, one per line.
+    Plain,
+    /// Only the working bridges, each as a torrc `Bridge <line>`.
+    Torrc,
 }
 
 #[derive(Copy, Clone, ValueEnum)]
@@ -218,6 +222,25 @@ async fn run_scan(args: ScanArgs) -> io::Result<bool> {
             let results = handle.await.expect("scan task panicked");
             let json = serde_json::to_string_pretty(&results).expect("results serialize");
             println!("{json}");
+            results
+        }
+        OutputFormat::Plain | OutputFormat::Torrc => {
+            while rx.recv().await.is_some() {}
+            let results = handle.await.expect("scan task panicked");
+            // Emit only the bridges that actually work, so the output is a reusable bridge list.
+            let working: Vec<String> = results
+                .iter()
+                .filter(|r| r.is_working())
+                .map(|r| r.raw.clone())
+                .collect();
+            let fmt = if matches!(args.format, OutputFormat::Torrc) {
+                ExportFormat::Torrc
+            } else {
+                ExportFormat::Plain
+            };
+            println!("{}", export(&working, fmt));
+            // Summary goes to stderr, so redirecting stdout to a file keeps only the bridges.
+            print_summary(&results, total);
             results
         }
     };

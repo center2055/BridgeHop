@@ -87,6 +87,7 @@ npm run tauri -- android build --apk --debug --target aarch64
 bridgehop scan --file bridges.txt              # scan lines from a file
 bridgehop scan --source all --category tested  # fetch from a source, then scan
 cat bridges.txt | bridgehop scan               # scan from stdin
+bridgehop scan --file bridges.txt --format torrc > working.torrc  # save only working bridges
 bridgehop sources obfs4 --category full-archive # fetch a list
 bridgehop export --source snowflake --format torrc
 bridgehop history                              # recent scan runs
