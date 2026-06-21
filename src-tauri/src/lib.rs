@@ -10,12 +10,20 @@ use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Some Linux GPU/driver combos (and the AppImage) crash WebKitGTK's DMABUF renderer with
-    // "EGL_BAD_PARAMETER", leaving a blank white window. Fall back to the non-DMABUF renderer
-    // unless the user already set this, which fixes the blank screen at a tiny perf cost.
+    // On some Linux GPU/driver/VM combos (and in the AppImage) WebKitGTK's GPU compositing path
+    // can't create an EGL display ("EGL_BAD_PARAMETER. Aborting..."), so the web process dies and
+    // the window is blank/white. Disabling compositing forces software rendering (no EGL needed),
+    // which is the canonical fix; also disable the DMABUF renderer. Both are skipped if the user
+    // set them, so a working GPU setup can re-enable acceleration. The app is light enough that
+    // software rendering is imperceptible.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    {
+        if std::env::var_os("WEBKIT_DISABLE_COMPOSITING_MODE").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
     }
 
     tauri::Builder::default()
