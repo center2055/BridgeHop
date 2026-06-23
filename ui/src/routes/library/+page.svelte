@@ -191,6 +191,13 @@
   table {
     width: 100%;
     border-collapse: collapse;
+    /* Fixed layout pins the table to 100% width at any window size, so the actions column is
+       never pushed off the right edge; the bridge text truncates instead. */
+    table-layout: fixed;
+  }
+  thead th:first-child,
+  tbody td:first-child {
+    width: 96px;
   }
   thead th {
     text-align: left;
@@ -198,20 +205,23 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--text-subtle);
-    padding: 12px 16px;
+    padding: 12px 10px;
     border-bottom: 1px solid var(--border);
     background: var(--surface-2);
   }
   th.num,
   td.num {
     text-align: right;
-    width: 92px;
+    width: 74px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .uptime-col {
-    width: 180px;
+    width: 140px;
   }
   tbody td {
-    padding: 10px 16px;
+    padding: 10px 10px;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
     vertical-align: middle;
@@ -224,7 +234,7 @@
   }
   .raw {
     color: var(--text-muted);
-    max-width: 380px;
+    max-width: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -257,13 +267,13 @@
     color: var(--text-subtle);
   }
   .col-actions {
-    width: 172px;
+    width: 120px;
     text-align: right;
   }
   .row-actions {
     display: flex;
+    flex-direction: column;
     gap: 6px;
-    justify-content: flex-end;
   }
   .copy-btn {
     flex: 1;

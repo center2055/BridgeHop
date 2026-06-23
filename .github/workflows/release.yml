@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   # All binaries are published as assets on this draft release. Release assets are stored
   # separately from Actions artifacts, so they don't count against the artifact storage quota.
-  RELEASE_TAG: v1.1.4
+  RELEASE_TAG: v1.1.5
 
 jobs:
   # Pre-create one draft release so the matrix jobs below all upload to the same place (and there's
