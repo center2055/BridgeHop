@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { reliability, slipnetUri, inTauri, type Reliability } from '$lib/ipc';
+  import { reliability, slipnetUri, clearHistory, inTauri, type Reliability } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
 
   let rows = $state<Reliability[]>([]);
@@ -61,11 +61,37 @@
       error = String(e);
     }
   }
+
+  // Two-tap clear: first tap arms it, second within 3s wipes the recorded scans.
+  let confirming = $state(false);
+  let confirmTimer: ReturnType<typeof setTimeout> | null = null;
+  async function clearLibrary() {
+    if (!confirming) {
+      confirming = true;
+      confirmTimer = setTimeout(() => (confirming = false), 3000);
+      return;
+    }
+    if (confirmTimer) clearTimeout(confirmTimer);
+    confirming = false;
+    try {
+      await clearHistory();
+      rows = [];
+    } catch (e) {
+      error = String(e);
+    }
+  }
 </script>
 
 <header class="page-head">
-  <h1>{t('library.title')}</h1>
-  <p>{t('library.subtitle')}</p>
+  <div class="head-text">
+    <h1>{t('library.title')}</h1>
+    <p>{t('library.subtitle')}</p>
+  </div>
+  {#if rows.length > 0}
+    <button class="clear-btn" class:confirming onclick={clearLibrary}>
+      {confirming ? t('library.clearConfirm') : t('library.clear')}
+    </button>
+  {/if}
 </header>
 
 {#if error}
@@ -120,12 +146,40 @@
 {/if}
 
 <style>
+  .page-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
   .page-head h1 {
     font-size: 26px;
   }
   .page-head p {
     margin: 4px 0 20px;
     color: var(--text-muted);
+  }
+  .clear-btn {
+    flex-shrink: 0;
+    margin-top: 4px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .clear-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .clear-btn.confirming {
+    border-color: var(--down);
+    background: var(--down-soft);
+    color: var(--down);
   }
   .placeholder {
     padding: 24px;

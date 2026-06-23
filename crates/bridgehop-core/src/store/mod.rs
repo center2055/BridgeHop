@@ -130,6 +130,13 @@ impl Store {
         Ok(Store { conn })
     }
 
+    /// Delete all recorded scans (runs, results, and bridges), resetting history and reliability.
+    pub fn clear(&mut self) -> Result<()> {
+        self.conn
+            .execute_batch("DELETE FROM scan_result; DELETE FROM scan_run; DELETE FROM bridge;")?;
+        Ok(())
+    }
+
     /// Persist a completed scan run and all of its results. Returns the new run id.
     pub fn record_run(&mut self, meta: &RunMeta, results: &[ScanResult]) -> Result<i64> {
         let now = now_unix();
@@ -338,6 +345,25 @@ mod tests {
         assert_eq!(runs[0].total, 1);
         assert_eq!(runs[0].reachable, 1);
         assert_eq!(runs[0].source, "manual");
+    }
+
+    #[test]
+    fn clear_wipes_runs_and_reliability() {
+        let mut store = Store::open_in_memory().unwrap();
+        let meta = RunMeta {
+            started_unix: 100,
+            source: "manual".to_string(),
+            transport_filter: "all".to_string(),
+            deep: false,
+        };
+        store
+            .record_run(&meta, &[sample(Reachability::Reachable, Some(120))])
+            .unwrap();
+        assert_eq!(store.list_runs(10).unwrap().len(), 1);
+
+        store.clear().unwrap();
+        assert!(store.list_runs(10).unwrap().is_empty());
+        assert!(store.reliability(10).unwrap().is_empty());
     }
 
     #[test]

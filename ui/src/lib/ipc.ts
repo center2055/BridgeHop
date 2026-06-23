@@ -132,6 +132,11 @@ export async function reliability(limit = 200): Promise<Reliability[]> {
   return invoke<Reliability[]>('reliability', { limit });
 }
 
+/** Delete all recorded scan history, clearing the Library. */
+export async function clearHistory(): Promise<void> {
+  await invoke('clear_history');
+}
+
 export type ExportFormat = 'plain' | 'torrc' | 'json';
 
 /** Render bridge lines in the given export format. */

@@ -118,6 +118,17 @@ pub async fn reliability(limit: usize) -> Result<Vec<Reliability>, String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Delete all recorded scan history (runs, results, reliability), clearing the Library.
+#[tauri::command]
+pub async fn clear_history() -> Result<(), String> {
+    tokio::task::spawn_blocking(|| {
+        let mut store = Store::open().map_err(|e| e.to_string())?;
+        store.clear().map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Render bridge lines in the requested export format (plain / torrc / json).
 #[tauri::command]
 pub fn export_bridges(lines: Vec<String>, format: ExportFormat) -> String {

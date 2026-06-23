@@ -91,6 +91,8 @@
     "title": "Library",
     "subtitle": "Bridges you've scanned, ranked by reliability across every recorded run.",
     "empty": "No bridges yet. Scan some bridges and they'll appear here with reliability stats.",
+    "clear": "Clear library",
+    "clearConfirm": "Confirm clear?",
     "col": {
       "transport": "Transport",
       "bridge": "Bridge",
