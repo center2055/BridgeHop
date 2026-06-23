@@ -259,7 +259,10 @@ mod tests {
         assert_eq!(fields.len(), 79, "v28 profile must have 79 fields");
         assert_eq!(fields[0], "28");
         assert_eq!(fields[1], "snowflake"); // SlipNet's Tor tunnel type
-        assert!(!fields[3].is_empty(), "importer requires a non-blank domain");
+        assert!(
+            !fields[3].is_empty(),
+            "importer requires a non-blank domain"
+        );
         assert!(!fields[4].is_empty(), "importer requires a resolver");
         // Field 27 (index 26) carries the base64 bridge line.
         let back = String::from_utf8(STANDARD.decode(fields[26]).unwrap()).unwrap();
