@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use bridgehop_core::io::{export, qr_svg, ExportFormat};
+use bridgehop_core::io::{export, qr_svg, to_slipnet_uri, ExportFormat};
 use bridgehop_core::sources::{self, Category as SrcCategory, Selection};
 use bridgehop_core::store::{RunMeta, Store};
 use bridgehop_core::{parse_bridge_lines, scan_bridges, Reachability, ScanOptions, ScanResult};
@@ -61,6 +61,8 @@ enum ExportFmt {
     Json,
     /// SVG QR code (encodes the first bridge).
     Qr,
+    /// SlipNet `slipnet://` config URIs (one per bridge) for import into SlipNet.
+    Slipnet,
 }
 
 #[derive(Args)]
@@ -354,6 +356,13 @@ async fn run_export(args: ExportArgs) -> io::Result<bool> {
                 return Ok(false);
             }
         },
+        ExportFmt::Slipnet => {
+            for line in &lines {
+                if let Some(uri) = to_slipnet_uri(line) {
+                    println!("{uri}");
+                }
+            }
+        }
     }
     Ok(true)
 }

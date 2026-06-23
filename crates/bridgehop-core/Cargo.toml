@@ -25,6 +25,8 @@ once_cell = { workspace = true }
 directories = { workspace = true }
 rusqlite = { workspace = true }
 reqwest = { workspace = true }
+# Standard base64 (padded, no wrapping) for SlipNet `slipnet://` config encoding.
+base64 = "0.22"
 # SVG QR rendering only (no image backend) to stay light; enabled by the `qr` feature.
 qrcode = { version = "0.14", default-features = false, features = ["svg"], optional = true }
 tokio = { workspace = true }
