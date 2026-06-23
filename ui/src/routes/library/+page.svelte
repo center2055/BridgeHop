@@ -36,6 +36,19 @@
   function fmtLast(unix: number): string {
     return new Date(unix * 1000).toLocaleDateString();
   }
+
+  let copiedId = $state<string | null>(null);
+  async function copyRaw(r: Reliability) {
+    try {
+      await navigator.clipboard.writeText(r.raw);
+      copiedId = r.bridge_id;
+      setTimeout(() => {
+        if (copiedId === r.bridge_id) copiedId = null;
+      }, 1200);
+    } catch (e) {
+      error = String(e);
+    }
+  }
 </script>
 
 <header class="page-head">
@@ -60,6 +73,7 @@
           <th class="num hide-sm">{t('library.col.probes')}</th>
           <th class="num hide-sm">{t('library.col.avg')}</th>
           <th class="num hide-sm">{t('library.col.lastSeen')}</th>
+          <th class="col-actions">{t('scan.col.actions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -76,6 +90,11 @@
             <td class="num hide-sm">{r.probes}</td>
             <td class="num hide-sm">{fmtAvg(r.avg_ms)}</td>
             <td class="num muted hide-sm">{fmtLast(r.last_unix)}</td>
+            <td class="col-actions">
+              <button class="copy-btn" title={r.raw} onclick={() => copyRaw(r)}>
+                {copiedId === r.bridge_id ? '✓' : t('scan.rowCopy')}
+              </button>
+            </td>
           </tr>
         {/each}
       </tbody>
@@ -166,13 +185,42 @@
   .muted {
     color: var(--text-subtle);
   }
+  .col-actions {
+    width: 110px;
+    text-align: right;
+  }
+  .copy-btn {
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
 
   @media (max-width: 720px) {
     .hide-sm {
       display: none;
     }
+    thead th,
+    tbody td {
+      padding: 10px 8px;
+    }
+    .uptime-col,
+    .col-actions {
+      width: auto;
+    }
     .raw {
-      max-width: 52vw;
+      max-width: 34vw;
+    }
+    .copy-btn {
+      padding: 6px 9px;
     }
   }
 </style>

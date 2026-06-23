@@ -9,7 +9,6 @@
     exportBridges,
     saveTextFile,
     importBridgesFile,
-    qrSvg,
     deepStatus,
     openExternal,
     openPtDir,
@@ -57,10 +56,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   let loadingSource = $state(false);
   let sourceInfo = $state<string | null>(null);
   let loadedSource = $state<string | null>(saved?.loadedSource ?? null);
-
-  // QR modal
-  let qrOpen = $state(false);
-  let qrContent = $state('');
 
   // Deep-verify install prompt
   let deepModalOpen = $state(false);
@@ -215,19 +210,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     try {
       await navigator.clipboard.writeText(raw);
       sourceInfo = t('scan.msg.copiedLine');
-    } catch (e) {
-      error = String(e);
-    }
-  }
-
-  async function showQr(raw: string) {
-    if (!inTauri()) {
-      error = t('scan.msg.desktopQr');
-      return;
-    }
-    try {
-      qrContent = await qrSvg(raw);
-      qrOpen = true;
     } catch (e) {
       error = String(e);
     }
@@ -429,10 +411,9 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
               {/if}
             </td>
             <td class="col-actions">
-              <div class="row-actions">
-                <button class="qr-btn" title={t('scan.rowCopyTitle')} onclick={() => copyRaw(r.raw)}>{t('scan.rowCopy')}</button>
-                <button class="qr-btn" title={t('scan.rowQrTitle')} onclick={() => showQr(r.raw)}>QR</button>
-              </div>
+              <button class="copy-btn" title={t('scan.rowCopyTitle')} onclick={() => copyRaw(r.raw)}>
+                {t('scan.rowCopy')}
+              </button>
             </td>
           </tr>
         {/each}
@@ -444,16 +425,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     <Icon name="scan" size={26} />
     <p>{t('scan.emptyHint')}</p>
   </section>
-{/if}
-
-{#if qrOpen}
-  <div class="qr-overlay">
-    <div class="qr-modal">
-      <!-- eslint-disable-next-line svelte/no-at-html-tags (trusted SVG from our own backend) -->
-      <div class="qr-svg">{@html qrContent}</div>
-      <button class="btn" onclick={() => (qrOpen = false)}>{t('common.close')}</button>
-    </div>
-  </div>
 {/if}
 
 {#if deepModalOpen}
@@ -475,7 +446,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
 <svelte:window
   onkeydown={(e) => {
     if (e.key === 'Escape') {
-      qrOpen = false;
       deepModalOpen = false;
     }
   }} />
@@ -670,25 +640,21 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     font-size: 12.5px;
   }
   .col-actions {
-    width: 116px;
-    text-align: center;
+    width: 132px;
+    text-align: right;
   }
-  .row-actions {
-    display: flex;
-    gap: 6px;
-    justify-content: flex-end;
-  }
-  .qr-btn {
+  .copy-btn {
+    width: 100%;
     border: 1px solid var(--border-strong);
     background: var(--surface-2);
     color: var(--text-muted);
-    border-radius: 6px;
-    padding: 3px 8px;
-    font-size: 11px;
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 12.5px;
     font-weight: 700;
     cursor: pointer;
   }
-  .qr-btn:hover {
+  .copy-btn:hover {
     background: var(--surface-hover);
     color: var(--text);
   }
@@ -701,31 +667,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     place-items: center;
     z-index: 50;
   }
-  .qr-modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-  }
-  .qr-svg {
-    width: 260px;
-    height: 260px;
-    background: #fff;
-    border-radius: 10px;
-    padding: 12px;
-    display: grid;
-    place-items: center;
-  }
-  .qr-svg :global(svg) {
-    width: 100%;
-    height: 100%;
-  }
-
   .deep-modal {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -786,12 +727,12 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       display: none;
     }
     .endpoint {
-      max-width: 34vw;
+      max-width: 40vw;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* Tighten the table so the Copy / QR actions stay on-screen (were clipped on phones). */
+    /* Tighten the table so the Copy action stays on-screen on phones. */
     thead th,
     tbody td {
       padding: 9px 8px;
@@ -801,14 +742,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     .col-actions {
       width: auto;
     }
-    /* Stack Copy / QR vertically so both fit even with long localized labels (e.g. Russian). */
-    .row-actions {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 4px;
-    }
-    .qr-btn {
-      padding: 4px 7px;
+    .copy-btn {
+      padding: 6px 8px;
     }
   }
 </style>
