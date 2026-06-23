@@ -234,14 +234,21 @@
     }
     thead th,
     tbody td {
-      padding: 10px 8px;
+      padding: 9px 6px;
     }
     .uptime-col,
     .col-actions {
       width: auto;
     }
+    /* On phones the bar would squeeze the actions column off-screen; show just the % instead. */
+    .bar {
+      display: none;
+    }
+    .pct {
+      width: auto;
+    }
     .raw {
-      max-width: 30vw;
+      max-width: 26vw;
     }
     .row-actions {
       flex-direction: column;
