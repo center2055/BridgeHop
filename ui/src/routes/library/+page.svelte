@@ -286,13 +286,18 @@
     .hide-sm {
       display: none;
     }
+    /* Fixed layout pins the table to 100% width so the action column can't be clipped off-screen;
+       the bridge text truncates instead. */
+    table {
+      table-layout: fixed;
+    }
     thead th,
     tbody td {
-      padding: 9px 6px;
+      padding: 8px 5px;
     }
-    .uptime-col,
-    .col-actions {
-      width: auto;
+    thead th:first-child,
+    tbody td:first-child {
+      width: 66px;
     }
     /* On phones the bar would squeeze the actions column off-screen; show just the % instead. */
     .bar {
@@ -301,8 +306,17 @@
     .pct {
       width: auto;
     }
+    .uptime-col {
+      width: 52px;
+    }
+    .col-actions {
+      width: 104px;
+    }
     .raw {
-      max-width: 26vw;
+      max-width: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .row-actions {
       flex-direction: column;
@@ -310,7 +324,7 @@
       gap: 4px;
     }
     .copy-btn {
-      padding: 6px 9px;
+      padding: 6px 6px;
     }
   }
 </style>

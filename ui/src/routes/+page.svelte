@@ -748,30 +748,38 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     .hide-sm {
       display: none;
     }
+    /* Fixed layout pins the table to 100% width: the action column can't be pushed off-screen,
+       and the address truncates instead. */
+    table {
+      table-layout: fixed;
+    }
+    thead th,
+    tbody td {
+      padding: 8px 5px;
+    }
+    .col-ping {
+      width: 44px;
+    }
+    .col-status {
+      width: 50px;
+    }
+    .col-actions {
+      width: 104px;
+    }
     .endpoint {
-      max-width: 40vw;
+      max-width: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* Tighten the table so the Copy action stays on-screen on phones. */
-    thead th,
-    tbody td {
-      padding: 9px 8px;
-    }
-    .col-ping,
-    .col-status,
-    .col-actions {
-      width: auto;
-    }
-    /* Stack Copy / SlipNet vertically so both fit on a phone. */
+    /* Stack Copy / SlipNet within the fixed action column so both fit. */
     .row-actions {
       flex-direction: column;
       align-items: stretch;
       gap: 5px;
     }
     .copy-btn {
-      padding: 7px 8px;
+      padding: 7px 6px;
     }
   }
 </style>
