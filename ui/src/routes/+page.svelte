@@ -278,15 +278,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     }
   }
 
-  function badgeLabel(r: Reachability): string {
-    switch (r) {
-      case 'reachable': return 'OK';
-      case 'slow': return 'SLOW';
-      case 'fronted': return 'FRONT';
-      case 'unreachable': return 'DOWN';
-      default: return 'SKIP';
-    }
-  }
 </script>
 
 <header class="page-head">
@@ -399,7 +390,6 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       <thead>
         <tr>
           <th class="col-ping">{t('scan.col.ping')}</th>
-          <th class="col-status">{t('scan.col.status')}</th>
           <th class="hide-sm">{t('scan.col.transport')}</th>
           <th>{t('scan.col.endpoint')}</th>
           <th class="hide-sm">{t('scan.col.detail')}</th>
@@ -409,8 +399,11 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       <tbody>
         {#each results as r, i (i)}
           <tr>
-            <td class="col-ping mono">{r.ping_ms != null ? `${r.ping_ms} ms` : '-'}</td>
-            <td><span class={badgeClass(r.reachability)}>{badgeLabel(r.reachability)}</span></td>
+            <td class="col-ping">
+              <span class={badgeClass(r.reachability)} title={r.detail}>
+                {r.ping_ms != null ? r.ping_ms : '—'}
+              </span>
+            </td>
             <td class="hide-sm"><span class="chip">{r.transport}</span></td>
             <td class="mono endpoint">{r.probed_host}:{r.probed_port}</td>
             <td class="detail hide-sm">
@@ -607,12 +600,8 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   tbody tr:hover {
     background: var(--surface-2);
   }
-  .col-status {
-    width: 86px;
-  }
   .col-ping {
-    width: 92px;
-    color: var(--text-muted);
+    width: 84px;
   }
   .endpoint {
     color: var(--text-muted);
@@ -758,10 +747,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
       padding: 8px 5px;
     }
     .col-ping {
-      width: 44px;
-    }
-    .col-status {
-      width: 50px;
+      width: 58px;
     }
     .col-actions {
       width: 104px;
