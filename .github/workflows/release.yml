@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   # All binaries are published as assets on this draft release. Release assets are stored
   # separately from Actions artifacts, so they don't count against the artifact storage quota.
-  RELEASE_TAG: v1.0.5
+  RELEASE_TAG: v1.0.6
 
 jobs:
   # Pre-create one draft release so the matrix jobs below all upload to the same place (and there's
@@ -118,7 +118,7 @@ jobs:
           ndk-version: r26d
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi
       - uses: Swatinem/rust-cache@v2
       - name: Install dependencies
         run: |
@@ -152,15 +152,17 @@ jobs:
             echo "password=$KEYSTORE_PASSWORD"
           } > src-tauri/gen/android/keystore.properties
           python3 .github/scripts/patch-android-signing.py
-      - name: Build signed release APK (arm64)
+      # Build a single universal APK covering 64-bit and 32-bit ARM, so one file installs on
+      # essentially every real Android phone (no per-ABI downloads to juggle).
+      - name: Build signed release APK (universal arm64 + armv7)
         if: env.HAS_KEYSTORE == 'true'
-        run: npm run tauri -- android build --apk --target aarch64
+        run: npm run tauri -- android build --apk --target aarch64 armv7
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
       - name: Build debug APK (no keystore configured)
         if: env.HAS_KEYSTORE != 'true'
-        run: npm run tauri -- android build --apk --debug --target aarch64
+        run: npm run tauri -- android build --apk --debug --target aarch64 armv7
         env:
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
@@ -168,10 +170,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          apk=$(find src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | sort | tail -n1)
+          base=src-tauri/gen/android/app/build/outputs/apk
+          apk=$(find "$base" -path '*universal*' -name '*.apk' | head -n1)
+          [ -z "$apk" ] && apk=$(find "$base" -name '*.apk' | sort | tail -n1)
           echo "Found APK: $apk"
-          cp "$apk" "bridgehop-${RELEASE_TAG}-android-arm64.apk"
-          gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-android-arm64.apk" \
+          cp "$apk" "bridgehop-${RELEASE_TAG}-android-universal.apk"
+          gh release upload "$RELEASE_TAG" "bridgehop-${RELEASE_TAG}-android-universal.apk" \
             --repo "$GITHUB_REPOSITORY" --clobber
 
   # Standalone CLI binary per OS, uploaded to the draft release.
