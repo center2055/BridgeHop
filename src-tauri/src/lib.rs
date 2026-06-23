@@ -69,6 +69,7 @@ pub fn run() {
             commands::save_text_file,
             commands::import_bridges_file,
             commands::qr_svg,
+            commands::slipnet_uri,
             commands::deep_status,
             commands::open_external,
             commands::open_pt_dir

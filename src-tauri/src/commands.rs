@@ -197,6 +197,12 @@ pub fn qr_svg(text: String) -> Result<String, String> {
     bridgehop_core::io::qr_svg(&text).map_err(|err| err.to_string())
 }
 
+/// Encode a bridge line as a SlipNet `slipnet://` config URI for import into SlipNet.
+#[tauri::command]
+pub fn slipnet_uri(line: String) -> Result<String, String> {
+    bridgehop_core::io::to_slipnet_uri(&line).ok_or_else(|| "could not parse bridge line".to_string())
+}
+
 /// obfs4 / pluggable-transport availability for deep verify.
 #[derive(serde::Serialize)]
 pub struct DeepStatus {

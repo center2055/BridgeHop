@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { reliability, inTauri, type Reliability } from '$lib/ipc';
+  import { reliability, slipnetUri, inTauri, type Reliability } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
 
   let rows = $state<Reliability[]>([]);
@@ -37,14 +37,26 @@
     return new Date(unix * 1000).toLocaleDateString();
   }
 
-  let copiedId = $state<string | null>(null);
+  let copied = $state<{ id: string; kind: 'raw' | 'slipnet' } | null>(null);
+  function flash(id: string, kind: 'raw' | 'slipnet') {
+    copied = { id, kind };
+    setTimeout(() => {
+      if (copied?.id === id && copied.kind === kind) copied = null;
+    }, 1200);
+  }
   async function copyRaw(r: Reliability) {
     try {
       await navigator.clipboard.writeText(r.raw);
-      copiedId = r.bridge_id;
-      setTimeout(() => {
-        if (copiedId === r.bridge_id) copiedId = null;
-      }, 1200);
+      flash(r.bridge_id, 'raw');
+    } catch (e) {
+      error = String(e);
+    }
+  }
+  async function copySlipnet(r: Reliability) {
+    try {
+      const uri = await slipnetUri(r.raw);
+      await navigator.clipboard.writeText(uri);
+      flash(r.bridge_id, 'slipnet');
     } catch (e) {
       error = String(e);
     }
@@ -91,9 +103,14 @@
             <td class="num hide-sm">{fmtAvg(r.avg_ms)}</td>
             <td class="num muted hide-sm">{fmtLast(r.last_unix)}</td>
             <td class="col-actions">
-              <button class="copy-btn" title={r.raw} onclick={() => copyRaw(r)}>
-                {copiedId === r.bridge_id ? '✓' : t('scan.rowCopy')}
-              </button>
+              <div class="row-actions">
+                <button class="copy-btn" title={r.raw} onclick={() => copyRaw(r)}>
+                  {copied?.id === r.bridge_id && copied.kind === 'raw' ? '✓' : t('scan.rowCopy')}
+                </button>
+                <button class="copy-btn" title="Copy as SlipNet config" onclick={() => copySlipnet(r)}>
+                  {copied?.id === r.bridge_id && copied.kind === 'slipnet' ? '✓' : 'SlipNet'}
+                </button>
+              </div>
             </td>
           </tr>
         {/each}
@@ -186,18 +203,25 @@
     color: var(--text-subtle);
   }
   .col-actions {
-    width: 110px;
+    width: 172px;
     text-align: right;
   }
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
   .copy-btn {
+    flex: 1;
     border: 1px solid var(--border-strong);
     background: var(--surface-2);
     color: var(--text-muted);
     border-radius: 7px;
-    padding: 6px 14px;
+    padding: 6px 10px;
     font-size: 12.5px;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
   }
   .copy-btn:hover {
     background: var(--surface-hover);
@@ -217,7 +241,12 @@
       width: auto;
     }
     .raw {
-      max-width: 34vw;
+      max-width: 30vw;
+    }
+    .row-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 4px;
     }
     .copy-btn {
       padding: 6px 9px;

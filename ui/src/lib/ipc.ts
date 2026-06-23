@@ -154,6 +154,11 @@ export async function qrSvg(text: string): Promise<string> {
   return invoke<string>('qr_svg', { text });
 }
 
+/** Encode a bridge line as a SlipNet `slipnet://` config URI (for import into SlipNet). */
+export async function slipnetUri(line: string): Promise<string> {
+  return invoke<string>('slipnet_uri', { line });
+}
+
 export interface DeepStatus {
   available: boolean;
   pt_dir: string;

@@ -10,6 +10,7 @@
     saveTextFile,
     importBridgesFile,
     deepStatus,
+    slipnetUri,
     openExternal,
     openPtDir,
     inTauri,
@@ -215,6 +216,16 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     }
   }
 
+  async function copySlipnet(raw: string) {
+    try {
+      const uri = await slipnetUri(raw);
+      await navigator.clipboard.writeText(uri);
+      sourceInfo = t('scan.msg.copiedLine');
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   async function toggleDeep(wanted: boolean) {
     if (!wanted) {
       deepVerify = false;
@@ -411,9 +422,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
               {/if}
             </td>
             <td class="col-actions">
-              <button class="copy-btn" title={t('scan.rowCopyTitle')} onclick={() => copyRaw(r.raw)}>
-                {t('scan.rowCopy')}
-              </button>
+              <div class="row-actions">
+                <button class="copy-btn" title={t('scan.rowCopyTitle')} onclick={() => copyRaw(r.raw)}>
+                  {t('scan.rowCopy')}
+                </button>
+                <button class="copy-btn" title="Copy as SlipNet config" onclick={() => copySlipnet(r.raw)}>
+                  SlipNet
+                </button>
+              </div>
             </td>
           </tr>
         {/each}
@@ -640,19 +656,25 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     font-size: 12.5px;
   }
   .col-actions {
-    width: 132px;
+    width: 184px;
     text-align: right;
   }
+  .row-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+  }
   .copy-btn {
-    width: 100%;
+    flex: 1;
     border: 1px solid var(--border-strong);
     background: var(--surface-2);
     color: var(--text-muted);
     border-radius: 7px;
-    padding: 7px 12px;
+    padding: 7px 10px;
     font-size: 12.5px;
     font-weight: 700;
     cursor: pointer;
+    white-space: nowrap;
   }
   .copy-btn:hover {
     background: var(--surface-hover);
@@ -742,8 +764,14 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
     .col-actions {
       width: auto;
     }
+    /* Stack Copy / SlipNet vertically so both fit on a phone. */
+    .row-actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 5px;
+    }
     .copy-btn {
-      padding: 6px 8px;
+      padding: 7px 8px;
     }
   }
 </style>
