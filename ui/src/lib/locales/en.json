@@ -121,7 +121,13 @@
     "appearance": "Appearance",
     "appearanceNote": "Choose between the light and dark theme.",
     "language": "Language",
-    "languageNote": "Choose the display language. Right-to-left languages are laid out accordingly."
+    "languageNote": "Choose the display language. Right-to-left languages are laid out accordingly.",
+    "updates": "Updates",
+    "updatesNote": "Check GitHub for new versions on launch and let you know when one is available.",
+    "autoUpdate": "Check for updates automatically",
+    "checkNow": "Check now",
+    "upToDate": "You are on the latest version.",
+    "updateAvailable": "Version {version} is available."
   },
   "about": {
     "title": "About",
@@ -149,5 +155,11 @@
     "license": "License",
     "licenseNote": "BridgeHop is free software, licensed under the GNU General Public License v3.0 or later.",
     "readLicense": "Read the license"
+  },
+  "update": {
+    "title": "BridgeHop {version} is available",
+    "body": "A newer version is available. Open the download page to get it.",
+    "download": "Update",
+    "later": "Later"
   }
 }

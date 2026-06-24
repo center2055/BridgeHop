@@ -1,6 +1,40 @@
 <script lang="ts">
   import { t, LANGUAGES, getLocale, setLocale } from '$lib/i18n.svelte';
   import { getTheme, setTheme } from '$lib/theme.svelte';
+  import { getAutoUpdate, setAutoUpdate, checkForUpdate } from '$lib/update.svelte';
+  import { openExternal } from '$lib/ipc';
+
+  let checking = $state(false);
+  let checkMsg = $state<string | null>(null);
+  let foundUrl = $state<string | null>(null);
+
+  async function checkNow() {
+    checking = true;
+    checkMsg = null;
+    foundUrl = null;
+    try {
+      const u = await checkForUpdate();
+      if (u) {
+        checkMsg = t('settings.updateAvailable', { version: u.version });
+        foundUrl = u.url;
+      } else {
+        checkMsg = t('settings.upToDate');
+      }
+    } catch {
+      checkMsg = t('settings.upToDate');
+    } finally {
+      checking = false;
+    }
+  }
+
+  async function openDownload() {
+    if (!foundUrl) return;
+    try {
+      await openExternal(foundUrl);
+    } catch {
+      /* ignore */
+    }
+  }
 </script>
 
 <header class="page-head">
@@ -27,6 +61,27 @@
   </select>
 </section>
 
+<section class="card panel">
+  <h2>{t('settings.updates')}</h2>
+  <p class="muted">{t('settings.updatesNote')}</p>
+  <label class="toggle">
+    <input
+      type="checkbox"
+      checked={getAutoUpdate()}
+      onchange={(e) => setAutoUpdate(e.currentTarget.checked)} />
+    {t('settings.autoUpdate')}
+  </label>
+  <div class="check-row">
+    <button class="btn" onclick={checkNow} disabled={checking}>
+      {checking ? t('common.loading') : t('settings.checkNow')}
+    </button>
+    {#if checkMsg}<span class="muted">{checkMsg}</span>{/if}
+    {#if foundUrl}
+      <button class="btn btn-primary" onclick={openDownload}>{t('update.download')}</button>
+    {/if}
+  </div>
+</section>
+
 <style>
   .page-head h1 {
     font-size: 26px;
@@ -51,5 +106,27 @@
   .sel {
     max-width: 260px;
     margin-top: 6px;
+  }
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 14px;
   }
 </style>
