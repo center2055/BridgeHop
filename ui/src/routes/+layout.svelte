@@ -31,8 +31,14 @@
     update = null;
   }
 
+  // "Later" skips this version (no re-prompt until a newer one ships).
   function laterUpdate() {
     if (update) dismissUpdate(update.version);
+    update = null;
+  }
+
+  // Escape just hides the modal for now — the user is still reminded on the next launch.
+  function closeUpdate() {
     update = null;
   }
 
@@ -117,7 +123,7 @@
 
 <svelte:window
   onkeydown={(e) => {
-    if (e.key === 'Escape') laterUpdate();
+    if (e.key === 'Escape' && update) closeUpdate();
   }} />
 
 <style>
@@ -129,6 +135,8 @@
     place-items: center;
     z-index: 50;
     padding: 16px;
+    /* Keep the modal (and its action buttons) clear of the Android gesture/system nav bar. */
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   }
   .update-modal {
     background: var(--surface);
@@ -138,6 +146,10 @@
     padding: 22px;
     max-width: 460px;
     width: 100%;
+    /* On short/landscape/split-screen viewports the modal scrolls instead of pushing the
+       Update / Later buttons off-screen. */
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;

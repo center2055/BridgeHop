@@ -21,7 +21,7 @@
         checkMsg = t('settings.upToDate');
       }
     } catch {
-      checkMsg = t('settings.upToDate');
+      checkMsg = t('settings.checkFailed');
     } finally {
       checking = false;
     }

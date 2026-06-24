@@ -49,8 +49,10 @@ function isNewer(latest: string, current: string): boolean {
 }
 
 /**
- * Check GitHub for a newer published release. Returns the update info, or `null` if up to date
- * (or if the version/network lookup fails — callers treat null as "no update").
+ * Check GitHub for a newer published release. Resolves to the update info, or `null` if already up
+ * to date (or not running inside the app). **Throws** if the lookup itself fails (offline, GitHub
+ * rate-limit, non-OK response) so callers can tell a failed check apart from "up to date" — the
+ * launch check swallows the error (stays silent); "Check now" surfaces it.
  */
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
   let current: string;
@@ -59,19 +61,23 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
   } catch {
     return null; // not running inside the app (e.g. browser dev preview)
   }
-  let data: unknown;
-  try {
-    const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!res.ok) return null;
-    data = await res.json();
-  } catch {
-    return null;
-  }
+  const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } });
+  if (!res.ok) throw new Error(`GitHub releases request failed (${res.status})`);
+  const data: unknown = await res.json();
   if (!Array.isArray(data)) return null;
-  const latest = data.find(
-    (r) => r && typeof r === 'object' && !(r as any).draft && !(r as any).prerelease
-  ) as { tag_name?: string; body?: string; html_url?: string } | undefined;
-  if (!latest?.tag_name || !isNewer(latest.tag_name, current)) return null;
+  // Pick the newest release by semver, not by array position: GitHub orders the array by the
+  // release's creation date, which can diverge from version order (backports, re-created releases).
+  const candidates = data.filter(
+    (r) =>
+      r &&
+      typeof r === 'object' &&
+      !(r as any).draft &&
+      !(r as any).prerelease &&
+      typeof (r as any).tag_name === 'string'
+  ) as Array<{ tag_name: string; body?: string; html_url?: string }>;
+  if (candidates.length === 0) return null;
+  const latest = candidates.reduce((best, r) => (isNewer(r.tag_name, best.tag_name) ? r : best));
+  if (!isNewer(latest.tag_name, current)) return null;
   return {
     version: latest.tag_name.replace(/^v/, ''),
     notes: latest.body ?? '',

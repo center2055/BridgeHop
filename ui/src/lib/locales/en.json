@@ -127,7 +127,8 @@
     "autoUpdate": "Check for updates automatically",
     "checkNow": "Check now",
     "upToDate": "You are on the latest version.",
-    "updateAvailable": "Version {version} is available."
+    "updateAvailable": "Version {version} is available.",
+    "checkFailed": "Couldn't check for updates. Try again later."
   },
   "about": {
     "title": "About",

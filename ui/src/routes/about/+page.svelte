@@ -7,7 +7,7 @@
   import { t } from '$lib/i18n.svelte';
 
   // Falls back to this in the browser dev preview; in the app it's read from the build at runtime.
-  let version = $state('1.2.0');
+  let version = $state('1.2.1');
   const BTC = 'bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2';
 
   let copied = $state(false);
