@@ -124,6 +124,8 @@
                 <div class="bar"><div class="fill" style:width="{pct(r.uptime)}%"></div></div>
                 <span class="pct">{pct(r.uptime)}%</span>
               </div>
+              <!-- The dedicated AVG column is hidden on phones; surface the ping here instead. -->
+              <span class="ping-sm">{fmtAvg(r.avg_ms)}</span>
             </td>
             <td class="num hide-sm">{r.probes}</td>
             <td class="num hide-sm">{fmtAvg(r.avg_ms)}</td>
@@ -263,6 +265,10 @@
     width: 34px;
     text-align: right;
   }
+  /* Shown only on phones, where the dedicated AVG (ping) column is hidden. */
+  .ping-sm {
+    display: none;
+  }
   .muted {
     color: var(--text-subtle);
   }
@@ -309,15 +315,23 @@
     tbody td:first-child {
       width: 66px;
     }
-    /* On phones the bar would squeeze the actions column off-screen; show just the % instead. */
+    /* On phones the bar would squeeze the actions column off-screen; show the % and ping instead. */
     .bar {
       display: none;
     }
     .pct {
       width: auto;
     }
+    .ping-sm {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-subtle);
+      white-space: nowrap;
+    }
     .uptime-col {
-      width: 52px;
+      width: 64px;
     }
     .col-actions {
       width: 104px;
