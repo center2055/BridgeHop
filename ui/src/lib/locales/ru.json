@@ -27,6 +27,7 @@
     "ipv6Hint": "Загрузить список IPv6 (только для транспортов collector)",
     "loadBridges": "Загрузить мосты",
     "bridgeLines": "Строки мостов",
+    "bridgePlaceholder": "Вставьте строки мостов сюда, по одной в строке. Примеры:\n1.1.1.1:443 0123456789ABCDEF0123456789ABCDEF01234567\nobfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1JI/vO6V6m/24odNwesD iat-mode=1",
     "concurrency": "Параллельность",
     "timeout": "Таймаут (мс)",
     "deepVerify": "Глубокая проверка (obfs4)",

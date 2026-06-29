@@ -193,6 +193,11 @@ button {
   resize: vertical;
   line-height: 1.6;
 }
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-subtle);
+  opacity: 1;
+}
 
 .badge {
   display: inline-flex;

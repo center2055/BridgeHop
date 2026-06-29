@@ -27,6 +27,7 @@
     "ipv6Hint": "Fetch the IPv6 list (collector transports only)",
     "loadBridges": "Load bridges",
     "bridgeLines": "Bridge lines",
+    "bridgePlaceholder": "Paste bridge lines here, one per line. Examples:\n1.1.1.1:443 0123456789ABCDEF0123456789ABCDEF01234567\nobfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1JI/vO6V6m/24odNwesD iat-mode=1",
     "concurrency": "Concurrency",
     "timeout": "Timeout (ms)",
     "deepVerify": "Deep verify (obfs4)",

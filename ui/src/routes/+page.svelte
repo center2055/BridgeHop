@@ -24,10 +24,6 @@
   } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
 
-  const SAMPLE = `# Paste bridge lines here (one per line). Examples:
-1.1.1.1:443 0123456789ABCDEF0123456789ABCDEF01234567
-obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1JI/vO6V6m/24odNwesD iat-mode=1`;
-
   // Persist the scan across navigation: leaving for Library and coming back would otherwise
   // remount this page and wipe the results. We stash the input/results/source in sessionStorage.
   const SCAN_KEY = 'bridgehop-scan';
@@ -41,7 +37,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
   }
   const saved = loadSaved();
 
-  let linesText = $state(saved?.linesText ?? SAMPLE);
+  let linesText = $state(saved?.linesText ?? '');
   let workers = $state(16);
   let timeoutMs = $state(3000);
   let deepVerify = $state(false);
@@ -330,6 +326,7 @@ obfs4 192.95.36.142:443 CDF2E852BF539B82BD10E27E9115A31734E378C2 cert=qUVQ0srL1J
         class="textarea"
         rows="9"
         spellcheck="false"
+        placeholder={t('scan.bridgePlaceholder')}
         bind:value={linesText}
         oninput={() => (loadedSource = null)}></textarea>
     </div>
