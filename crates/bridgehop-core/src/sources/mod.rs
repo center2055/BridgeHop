@@ -15,10 +15,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
-/// Collector mirror base URLs (must end with `/`), in priority order.
+/// Collector mirror base URLs (must end with `/`), in priority order. The GitHub-hosted origins
+/// come first; the jsDelivr and Statically CDNs serve the exact same files over different
+/// infrastructure, so they route around regional blocks/throttling of raw.githubusercontent.com.
 pub const MIRROR_BASES: &[&str] = &[
     "https://raw.githubusercontent.com/center2055/OnionHop-Bridges-Collector/main/bridge/",
     "https://center2055.github.io/OnionHop-Bridges-Collector/bridge/",
+    "https://cdn.jsdelivr.net/gh/center2055/OnionHop-Bridges-Collector@main/bridge/",
+    "https://cdn.statically.io/gh/center2055/OnionHop-Bridges-Collector@main/bridge/",
 ];
 
 /// Transports the collector publishes curated, region-tested files for.

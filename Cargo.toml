@@ -13,7 +13,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "1.2.5"
+version = "1.2.6"
 edition = "2021"
 rust-version = "1.83"
 license = "GPL-3.0-or-later"
@@ -31,7 +31,10 @@ once_cell = "1"
 clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 directories = "6"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# native-roots: trust the OS certificate store (like OnionHop's .NET client and system browsers),
+# so a VPN/AV that does TLS inspection doesn't break fetches. system-proxy: honor the OS proxy.
+# Both make reqwest behave like the platform HTTP stack without pulling OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "system-proxy"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "sync", "io-util"] }
 
 # Smallest-binary-first release profile (binary size is BridgeHop's #1 constraint).

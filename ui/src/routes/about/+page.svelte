@@ -7,7 +7,7 @@
   import { t } from '$lib/i18n.svelte';
 
   // Falls back to this in the browser dev preview; in the app it's read from the build at runtime.
-  let version = $state('1.2.5');
+  let version = $state('1.2.6');
   const BTC = 'bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2';
 
   let copied = $state(false);
@@ -110,6 +110,9 @@
       <div class="links">
         <button class="link-btn" onclick={() => open('https://github.com/center2055/BridgeHop/issues')}>
           <BrandIcon name="github" /> {t('about.linkGithub')}
+        </button>
+        <button class="link-btn" onclick={() => open('https://github.com/center2055/BridgeHop/releases')}>
+          <Icon name="external" size={17} /> {t('about.viewReleases')}
         </button>
         <button class="link-btn" onclick={() => open('https://discord.gg/y3MVspPzKQ')}>
           <BrandIcon name="discord" /> {t('about.linkDiscord')}
