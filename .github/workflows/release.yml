@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   # All binaries are published as assets on this draft release. Release assets are stored
   # separately from Actions artifacts, so they don't count against the artifact storage quota.
-  RELEASE_TAG: v1.2.6
+  RELEASE_TAG: v1.2.7
 
 jobs:
   # Pre-create one draft release so the matrix jobs below all upload to the same place (and there's
@@ -78,6 +78,32 @@ jobs:
           cp target/release/bridgehop-app.exe "BridgeHop-${RELEASE_TAG}-portable-x64.exe"
           gh release upload "$RELEASE_TAG" "BridgeHop-${RELEASE_TAG}-portable-x64.exe" \
             --repo "$GITHUB_REPOSITORY" --clobber
+      # Self-contained portable: the same exe plus a bundled fixed-version WebView2 runtime, so it
+      # runs from a folder on machines without WebView2 installed (the app points WebView2 at the
+      # sibling WebView2Runtime folder — see src-tauri/src/lib.rs). Much larger (~180 MB) than the
+      # plain portable above; offered as a separate download for zero-dependency use.
+      - name: Package portable with bundled WebView2 runtime
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fixed-version WebView2 runtime cab (content-addressed URL, stable per version). To bump
+          # the runtime, pick a new cab from the Fixed Version section of
+          # https://developer.microsoft.com/microsoft-edge/webview2/ and update this URL.
+          $cabUrl = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/c00b9782-0422-4114-be27-8eec079b394d/Microsoft.WebView2.FixedVersionRuntime.150.0.4078.65.x64.cab"
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest -Uri $cabUrl -OutFile wv2.cab -UseBasicParsing -MaximumRedirection 10
+          New-Item -ItemType Directory -Force -Path wv2ext | Out-Null
+          expand.exe wv2.cab -F:* wv2ext | Out-Null
+          $rt = Get-ChildItem "wv2ext\Microsoft.WebView2.FixedVersionRuntime.*.x64" -Directory | Select-Object -First 1
+          if (-not $rt) { throw "WebView2 runtime folder not found after expand" }
+          $pkg = "BridgeHop-$env:RELEASE_TAG-portable-with-runtime-x64"
+          New-Item -ItemType Directory -Force -Path "$pkg\WebView2Runtime" | Out-Null
+          Copy-Item "target\release\bridgehop-app.exe" "$pkg\BridgeHop.exe"
+          Copy-Item "$($rt.FullName)\*" "$pkg\WebView2Runtime\" -Recurse -Force
+          Compress-Archive -Path "$pkg\*" -DestinationPath "$pkg.zip" -Force
+          gh release upload "$env:RELEASE_TAG" "$pkg.zip" --repo "$env:GITHUB_REPOSITORY" --clobber
 
   # Android APK. Debug-signed, sideloadable, arm64-v8a (covers essentially all real phones).
   android:

@@ -26,6 +26,25 @@ pub fn run() {
         }
     }
 
+    // Windows: the self-contained portable build ships a fixed-version WebView2 runtime in a
+    // `WebView2Runtime` folder next to the executable. If one is present, point WebView2 at it so
+    // the app runs without a system-installed runtime. This must happen before the webview is
+    // created (WebView2 reads the variable when the environment is built). A no-op for the normal
+    // builds, which ship no such folder and use the system (Evergreen) runtime.
+    #[cfg(target_os = "windows")]
+    {
+        if std::env::var_os("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER").is_none() {
+            if let Some(runtime) = std::env::current_exe()
+                .ok()
+                .and_then(|exe| exe.parent().map(|dir| dir.join("WebView2Runtime")))
+            {
+                if runtime.join("msedgewebview2.exe").is_file() {
+                    std::env::set_var("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER", &runtime);
+                }
+            }
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
