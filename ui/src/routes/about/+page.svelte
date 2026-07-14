@@ -7,7 +7,7 @@
   import { t } from '$lib/i18n.svelte';
 
   // Falls back to this in the browser dev preview; in the app it's read from the build at runtime.
-  let version = $state('1.2.7');
+  let version = $state('1.2.8');
   const BTC = 'bc1q0gvnvrr0a64kpxylwgqkvlp5gt4c48jqxy9jy2';
 
   let copied = $state(false);
@@ -172,6 +172,9 @@
               <span class="rel-meta">{rel.tag_name} &middot; {fmtDate(rel.published_at)}</span>
             </summary>
             <pre class="rel-body">{rel.body || 'No notes.'}</pre>
+            <button class="link-btn rel-link" onclick={() => open(rel.html_url)}>
+              <BrandIcon name="github" /> {t('about.viewOnGithub')}
+            </button>
           </details>
         {/each}
       {:else}
@@ -340,6 +343,9 @@
     font-size: 12.5px;
     color: var(--text-muted);
     font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .rel-link {
+    margin-top: 10px;
   }
 
   @media (max-width: 720px) {

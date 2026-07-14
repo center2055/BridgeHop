@@ -154,6 +154,7 @@
     "noReleases": "Релизы ещё не опубликованы.",
     "loadError": "Не удалось загрузить релизы.",
     "viewReleases": "Посмотреть релизы на GitHub",
+    "viewOnGithub": "Открыть на GitHub",
     "license": "Лицензия",
     "licenseNote": "BridgeHop — свободное программное обеспечение, распространяемое по лицензии GNU General Public License v3.0 или более поздней версии.",
     "readLicense": "Прочитать лицензию"
