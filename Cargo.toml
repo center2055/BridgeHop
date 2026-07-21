@@ -31,10 +31,12 @@ once_cell = "1"
 clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
 directories = "6"
-# native-roots: trust the OS certificate store (like OnionHop's .NET client and system browsers),
-# so a VPN/AV that does TLS inspection doesn't break fetches. system-proxy: honor the OS proxy.
-# Both make reqwest behave like the platform HTTP stack without pulling OpenSSL.
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "system-proxy"] }
+# webpki-roots: bundled public-CA roots, so HTTPS always validates even where the OS trust store
+# isn't readable — notably Android, where rustls-native-certs is unreliable; native-roots ALONE left
+# the root store empty there and broke every bridge-list fetch on mobile. native-roots: ALSO trust
+# the OS store, so a VPN/AV doing TLS inspection doesn't break fetches on desktop. system-proxy:
+# honor the OS proxy. Together they behave like the platform HTTP stack without pulling OpenSSL.
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-webpki-roots", "rustls-tls-native-roots", "system-proxy"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "process", "sync", "io-util"] }
 
 # Smallest-binary-first release profile (binary size is BridgeHop's #1 constraint).
