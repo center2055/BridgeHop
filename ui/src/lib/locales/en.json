@@ -55,6 +55,8 @@
       "actions": "Actions"
     },
     "exportWorking": "Export working bridges",
+    "copyWorking": "Copy working ({count})",
+    "copiedAll": "Copied!",
     "exportPlain": "Export plain",
     "exportTorrc": "Export torrc",
     "exportJson": "Export JSON",
@@ -94,6 +96,11 @@
     "empty": "No bridges yet. Scan some bridges and they'll appear here with reliability stats.",
     "clear": "Clear library",
     "clearConfirm": "Confirm clear?",
+    "allTransports": "All transports",
+    "uptimeAny": "Any uptime",
+    "copyAll": "Copy {count}",
+    "copiedAll": "Copied!",
+    "noMatch": "No bridges match the filters.",
     "col": {
       "transport": "Transport",
       "bridge": "Bridge",

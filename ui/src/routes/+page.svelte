@@ -222,6 +222,20 @@
     }
   }
 
+  // Bulk-copy every working (valid) bridge line to the clipboard.
+  let copiedAll = $state(false);
+  async function copyWorking() {
+    const working = workingRaws();
+    if (working.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(working.join('\n'));
+      copiedAll = true;
+      setTimeout(() => (copiedAll = false), 1500);
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   async function toggleDeep(wanted: boolean) {
     if (!wanted) {
       deepVerify = false;
@@ -373,14 +387,17 @@
     <div class="stat down"><span class="stat-value">{summary.unreachable}</span><span class="stat-label">{t('scan.sum.unreachable')}</span></div>
   </section>
 
-  {#if !isMobile()}
-    <div class="results-toolbar">
+  <div class="results-toolbar">
+    <button class="btn small" onclick={copyWorking} disabled={summary.working === 0}>
+      {copiedAll ? t('scan.copiedAll') : t('scan.copyWorking', { count: summary.working })}
+    </button>
+    {#if !isMobile()}
       <span class="toolbar-label">{t('scan.exportWorking')}</span>
       <button class="btn small" onclick={() => exportFile('plain')}>{t('scan.exportPlain')}</button>
       <button class="btn small" onclick={() => exportFile('torrc')}>{t('scan.exportTorrc')}</button>
       <button class="btn small" onclick={() => exportFile('json')}>{t('scan.exportJson')}</button>
-    </div>
-  {/if}
+    {/if}
+  </div>
 
   <section class="card table-card">
     <table>
@@ -627,6 +644,7 @@
   .results-toolbar {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     margin: 18px 0 12px;
   }

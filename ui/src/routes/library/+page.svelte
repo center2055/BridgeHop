@@ -62,6 +62,27 @@
     }
   }
 
+  // Narrow the table by transport and minimum uptime; Copy grabs the filtered raw lines.
+  let transportFilter = $state('all');
+  let minUptime = $state(0);
+  const transports = $derived([...new Set(rows.map((r) => r.transport))].sort());
+  const filtered = $derived(
+    rows.filter(
+      (r) => (transportFilter === 'all' || r.transport === transportFilter) && r.uptime >= minUptime
+    )
+  );
+  let copiedAll = $state(false);
+  async function copyFiltered() {
+    if (filtered.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(filtered.map((r) => r.raw).join('\n'));
+      copiedAll = true;
+      setTimeout(() => (copiedAll = false), 1500);
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
   // Two-tap clear: first tap arms it, second within 3s wipes the recorded scans.
   let confirming = $state(false);
   let confirmTimer: ReturnType<typeof setTimeout> | null = null;
@@ -101,6 +122,27 @@
 {:else if rows.length === 0}
   <div class="placeholder card">{t('library.empty')}</div>
 {:else}
+  <div class="filters">
+    <select class="input" bind:value={transportFilter} aria-label={t('library.col.transport')}>
+      <option value="all">{t('library.allTransports')}</option>
+      {#each transports as tr (tr)}
+        <option value={tr}>{tr}</option>
+      {/each}
+    </select>
+    <select class="input" bind:value={minUptime} aria-label={t('library.col.uptime')}>
+      <option value={0}>{t('library.uptimeAny')}</option>
+      <option value={0.5}>&ge; 50%</option>
+      <option value={0.75}>&ge; 75%</option>
+      <option value={0.9}>&ge; 90%</option>
+      <option value={1}>100%</option>
+    </select>
+    <button class="copy-btn" onclick={copyFiltered} disabled={filtered.length === 0}>
+      {copiedAll ? t('library.copiedAll') : t('library.copyAll', { count: filtered.length })}
+    </button>
+  </div>
+  {#if filtered.length === 0}
+    <div class="placeholder card">{t('library.noMatch')}</div>
+  {:else}
   <section class="card table-card">
     <table>
       <thead>
@@ -115,7 +157,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each rows as r (r.bridge_id)}
+        {#each filtered as r (r.bridge_id)}
           <tr>
             <td><span class="chip">{r.transport}</span></td>
             <td class="mono raw" title={r.raw}>{shortRaw(r.raw)}</td>
@@ -145,6 +187,7 @@
       </tbody>
     </table>
   </section>
+  {/if}
 {/if}
 
 <style>
@@ -186,6 +229,22 @@
   .placeholder {
     padding: 24px;
     color: var(--text-subtle);
+  }
+  .filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  /* The shared .input stretches full-width; the filter dropdowns size to their content. */
+  .filters .input {
+    width: auto;
+    max-width: 190px;
+  }
+  .copy-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
   .table-card {
     overflow: hidden;
