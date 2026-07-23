@@ -15,9 +15,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 
-/// Collector mirror base URLs (must end with `/`), in priority order. The GitHub-hosted origins
-/// come first; the jsDelivr and Statically CDNs serve the exact same files over different
-/// infrastructure, so they route around regional blocks/throttling of raw.githubusercontent.com.
+/// Collector mirror base URLs (must end with `/`). All are raced in parallel (see
+/// `fetch_collector`), so order doesn't imply priority — the fastest reachable one wins. The
+/// GitHub origins plus the jsDelivr and Statically CDNs serve identical files over different
+/// infrastructure, so at least one is usually reachable through regional blocks/throttling.
 pub const MIRROR_BASES: &[&str] = &[
     "https://raw.githubusercontent.com/center2055/OnionHop-Bridges-Collector/main/bridge/",
     "https://center2055.github.io/OnionHop-Bridges-Collector/bridge/",
@@ -130,7 +131,10 @@ pub async fn fetch(selection: &Selection, client: &reqwest::Client) -> Result<Fe
     fetch_collector(&transport, selection.category, selection.ipv6, client).await
 }
 
-/// Try each mirror in order; return the first non-empty list.
+/// Race every mirror in parallel; the first to return a non-empty list wins. Racing (rather than
+/// trying mirrors one after another) is what makes fetching work on censored networks: which
+/// mirrors are reachable varies, and a blocked or slow mirror would otherwise hang the whole fetch
+/// until it timed out before the reachable one was even tried.
 async fn fetch_collector(
     transport: &str,
     category: Category,
@@ -138,22 +142,26 @@ async fn fetch_collector(
     client: &reqwest::Client,
 ) -> Result<FetchResult> {
     let file = build_file_name(transport, category, ipv6);
+    let mut set = tokio::task::JoinSet::new();
     for base in MIRROR_BASES {
         let url = format!("{base}{file}");
-        let Ok(response) = client.get(&url).send().await else {
-            continue;
-        };
-        if !response.status().is_success() {
-            continue;
-        }
-        let Ok(body) = response.text().await else {
-            continue;
-        };
-        let lines = parse_lines(&body);
-        if !lines.is_empty() {
+        let client = client.clone();
+        set.spawn(async move {
+            let response = client.get(&url).send().await.ok()?;
+            if !response.status().is_success() {
+                return None;
+            }
+            let lines = parse_lines(&response.text().await.ok()?);
+            (!lines.is_empty()).then_some((lines, url))
+        });
+    }
+    // join_next yields in completion order, so this is the fastest reachable mirror with content.
+    while let Some(joined) = set.join_next().await {
+        if let Ok(Some((lines, source))) = joined {
+            set.abort_all();
             return Ok(FetchResult {
                 lines,
-                source: url,
+                source,
                 stale: false,
             });
         }
