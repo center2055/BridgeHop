@@ -57,6 +57,7 @@
     "exportWorking": "Экспорт рабочих мостов",
     "copyWorking": "Копировать рабочие ({count})",
     "copiedAll": "Скопировано!",
+    "shareWorking": "Поделиться / Сохранить",
     "exportPlain": "Экспорт в текст",
     "exportTorrc": "Экспорт в torrc",
     "exportJson": "Экспорт в JSON",

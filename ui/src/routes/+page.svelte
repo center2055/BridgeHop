@@ -236,6 +236,26 @@
     }
   }
 
+  // Mobile "save to phone": hand the working bridges to the OS share sheet (Android WebView
+  // implements the Web Share API), so the user can save them to Files or send them anywhere.
+  // Falls back to a clipboard copy if sharing isn't available or is dismissed.
+  async function shareWorking() {
+    const working = workingRaws();
+    if (working.length === 0) return;
+    const text = working.join('\n');
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    if (typeof nav.share === 'function') {
+      try {
+        await nav.share({ title: 'BridgeHop bridges', text });
+        return;
+      } catch (e) {
+        // User dismissed the share sheet, or it's unavailable — fall through to copy.
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+      }
+    }
+    await copyWorking();
+  }
+
   async function toggleDeep(wanted: boolean) {
     if (!wanted) {
       deepVerify = false;
@@ -391,6 +411,11 @@
     <button class="btn small" onclick={copyWorking} disabled={summary.working === 0}>
       {copiedAll ? t('scan.copiedAll') : t('scan.copyWorking', { count: summary.working })}
     </button>
+    {#if isMobile()}
+      <button class="btn small" onclick={shareWorking} disabled={summary.working === 0}>
+        {t('scan.shareWorking')}
+      </button>
+    {/if}
     {#if !isMobile()}
       <span class="toolbar-label">{t('scan.exportWorking')}</span>
       <button class="btn small" onclick={() => exportFile('plain')}>{t('scan.exportPlain')}</button>

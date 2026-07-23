@@ -57,6 +57,7 @@
     "exportWorking": "Export working bridges",
     "copyWorking": "Copy working ({count})",
     "copiedAll": "Copied!",
+    "shareWorking": "Share / Save",
     "exportPlain": "Export plain",
     "exportTorrc": "Export torrc",
     "exportJson": "Export JSON",
