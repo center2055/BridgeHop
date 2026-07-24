@@ -23,6 +23,7 @@
     type ExportFormat
   } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
+  import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
 
   // Persist the scan across navigation: leaving for Library and coming back would otherwise
   // remount this page and wipe the results. We stash the input/results/source in sessionStorage.
@@ -236,22 +237,18 @@
     }
   }
 
-  // Mobile "save to phone": hand the working bridges to the OS share sheet (Android WebView
-  // implements the Web Share API), so the user can save them to Files or send them anywhere.
-  // Falls back to a clipboard copy if sharing isn't available or is dismissed.
+  // Mobile "save to phone": hand the working bridges to the OS share sheet (via the sharesheet
+  // plugin), so the user can save them to Files or send them to another app. Falls back to a
+  // clipboard copy if the share sheet is unavailable (e.g. desktop) or the share fails.
   async function shareWorking() {
     const working = workingRaws();
     if (working.length === 0) return;
     const text = working.join('\n');
-    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
-    if (typeof nav.share === 'function') {
-      try {
-        await nav.share({ title: 'BridgeHop bridges', text });
-        return;
-      } catch (e) {
-        // User dismissed the share sheet, or it's unavailable — fall through to copy.
-        if (e instanceof DOMException && e.name === 'AbortError') return;
-      }
+    try {
+      await shareText(text, { title: 'BridgeHop bridges', mimeType: 'text/plain' });
+      return;
+    } catch {
+      // Share sheet not available or dismissed — fall back to copying to the clipboard.
     }
     await copyWorking();
   }

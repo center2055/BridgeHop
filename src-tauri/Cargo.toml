@@ -37,3 +37,8 @@ bridgehop-core = { workspace = true, features = ["qr", "deep-verify"] }
 # Native "Save as" / "Open" dialogs for import/export. Sync GTK backend on Linux (GTK is already
 # linked by Tauri's webkit2gtk), WinAPI backend on Windows; no async runtime pulled in.
 rfd = { version = "0.14", default-features = false, features = ["gtk3"] }
+
+# Mobile-only. The OS share sheet lets the mobile "Share / Save" button hand the working bridges
+# to Files / another app (desktop has native save dialogs instead). Android/iOS only.
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-sharesheet = "0.0.1"

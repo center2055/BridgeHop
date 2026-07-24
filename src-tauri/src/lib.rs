@@ -45,8 +45,12 @@ pub fn run() {
         }
     }
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
+    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    // The OS share sheet (for the mobile "Share / Save" button) is Android/iOS only.
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_sharesheet::init());
+
+    builder
         .manage(AppState::default())
         .setup(|_app| {
             // On mobile the per-OS data location isn't discoverable via `directories`, so hand the

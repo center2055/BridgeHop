@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Mobile-only permissions: the OS share sheet for exporting bridges.",
+  "platforms": ["android"],
+  "windows": ["main"],
+  "permissions": ["sharesheet:allow-share-text"]
+}
