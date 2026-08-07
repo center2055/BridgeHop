@@ -89,6 +89,7 @@ pub fn run() {
             commands::list_runs,
             commands::reliability,
             commands::clear_history,
+            commands::delete_bridge,
             commands::export_bridges,
             commands::save_text_file,
             commands::import_bridges_file,

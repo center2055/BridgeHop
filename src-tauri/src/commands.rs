@@ -129,6 +129,17 @@ pub async fn clear_history() -> Result<(), String> {
     .map_err(|e| e.to_string())?
 }
 
+/// Remove a single bridge (and its recorded results) from the Library.
+#[tauri::command]
+pub async fn delete_bridge(id: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || {
+        let mut store = Store::open().map_err(|e| e.to_string())?;
+        store.delete_bridge(&id).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Render bridge lines in the requested export format (plain / torrc / json).
 #[tauri::command]
 pub fn export_bridges(lines: Vec<String>, format: ExportFormat) -> String {

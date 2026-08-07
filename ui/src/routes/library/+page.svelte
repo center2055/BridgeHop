@@ -1,6 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { reliability, slipnetUri, clearHistory, inTauri, type Reliability } from '$lib/ipc';
+  import {
+    reliability,
+    slipnetUri,
+    clearHistory,
+    deleteBridge,
+    inTauri,
+    type Reliability
+  } from '$lib/ipc';
   import { t } from '$lib/i18n.svelte';
 
   let rows = $state<Reliability[]>([]);
@@ -57,6 +64,26 @@
       const uri = await slipnetUri(r.raw);
       await navigator.clipboard.writeText(uri);
       flash(r.bridge_id, 'slipnet');
+    } catch (e) {
+      error = String(e);
+    }
+  }
+
+  // Two-tap delete: first tap arms the row, second within 3s removes it from the library.
+  let confirmDelete = $state<string | null>(null);
+  let deleteTimer: ReturnType<typeof setTimeout> | null = null;
+  async function removeRow(r: Reliability) {
+    if (confirmDelete !== r.bridge_id) {
+      confirmDelete = r.bridge_id;
+      if (deleteTimer) clearTimeout(deleteTimer);
+      deleteTimer = setTimeout(() => (confirmDelete = null), 3000);
+      return;
+    }
+    if (deleteTimer) clearTimeout(deleteTimer);
+    confirmDelete = null;
+    try {
+      await deleteBridge(r.bridge_id);
+      rows = rows.filter((x) => x.bridge_id !== r.bridge_id);
     } catch (e) {
       error = String(e);
     }
@@ -179,6 +206,13 @@
                 </button>
                 <button class="copy-btn" title="Copy as SlipNet config" onclick={() => copySlipnet(r)}>
                   {copied?.id === r.bridge_id && copied.kind === 'slipnet' ? '✓' : 'SlipNet'}
+                </button>
+                <button
+                  class="copy-btn del-btn"
+                  class:confirming={confirmDelete === r.bridge_id}
+                  title={t('library.delete')}
+                  onclick={() => removeRow(r)}>
+                  {confirmDelete === r.bridge_id ? t('library.deleteConfirm') : t('library.delete')}
                 </button>
               </div>
             </td>
@@ -355,6 +389,15 @@
   .copy-btn:hover {
     background: var(--surface-hover);
     color: var(--text);
+  }
+  .del-btn:hover {
+    border-color: var(--down);
+    color: var(--down);
+  }
+  .del-btn.confirming {
+    border-color: var(--down);
+    background: var(--down-soft);
+    color: var(--down);
   }
 
   @media (max-width: 720px) {

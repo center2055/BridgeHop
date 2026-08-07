@@ -97,6 +97,8 @@
     "empty": "No bridges yet. Scan some bridges and they'll appear here with reliability stats.",
     "clear": "Clear library",
     "clearConfirm": "Confirm clear?",
+    "delete": "Delete",
+    "deleteConfirm": "Confirm?",
     "allTransports": "All transports",
     "uptimeAny": "Any uptime",
     "copyAll": "Copy {count}",

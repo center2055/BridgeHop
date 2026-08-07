@@ -196,6 +196,12 @@ impl Store {
             )?;
 
             for r in results {
+                // Only working bridges are saved to the Library (OnionHop-style): unreachable and
+                // unparsed bridges aren't persisted, so they don't clutter it. The run tally above
+                // still counts them, so History reflects the full scan.
+                if !r.is_working() {
+                    continue;
+                }
                 let parsed = parse_bridge_line(&r.raw);
                 let fingerprint = parsed.as_ref().and_then(|b| b.fingerprint.clone());
                 let front_host = parsed.as_ref().and_then(|b| b.front_host.clone());
@@ -269,6 +275,15 @@ impl Store {
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    /// Remove a single bridge and all its recorded scan results from the library.
+    pub fn delete_bridge(&mut self, id: &str) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        tx.execute("DELETE FROM scan_result WHERE bridge_id = ?1", params![id])?;
+        tx.execute("DELETE FROM bridge WHERE id = ?1", params![id])?;
+        tx.commit()?;
+        Ok(())
     }
 
     /// Per-bridge reliability leaderboard, best uptime (then lowest latency) first.
@@ -375,18 +390,62 @@ mod tests {
             transport_filter: "all".to_string(),
             deep: false,
         };
-        // Same bridge: one working, one down -> 50% uptime over 2 probes.
+        // Same bridge working across two runs (reachable, then slow) -> 2 probes, 100% uptime,
+        // averaged latency. Only working probes are recorded.
         store
             .record_run(&meta, &[sample(Reachability::Reachable, Some(100))])
             .unwrap();
         store
-            .record_run(&meta, &[sample(Reachability::Unreachable, None)])
+            .record_run(&meta, &[sample(Reachability::Slow, Some(300))])
             .unwrap();
 
         let rel = store.reliability(10).unwrap();
         assert_eq!(rel.len(), 1);
         assert_eq!(rel[0].probes, 2);
-        assert!((rel[0].uptime - 0.5).abs() < 1e-9);
-        assert_eq!(rel[0].avg_ms, Some(100.0));
+        assert!((rel[0].uptime - 1.0).abs() < 1e-9);
+        assert_eq!(rel[0].avg_ms, Some(200.0));
+    }
+
+    #[test]
+    fn does_not_save_non_working_bridges() {
+        let mut store = Store::open_in_memory().unwrap();
+        let meta = RunMeta {
+            started_unix: 1,
+            source: "manual".to_string(),
+            transport_filter: "all".to_string(),
+            deep: false,
+        };
+        // A scan of one down and one unparsed bridge: the run is recorded (History), but neither
+        // bridge lands in the library.
+        let run = store
+            .record_run(
+                &meta,
+                &[
+                    sample(Reachability::Unreachable, None),
+                    sample(Reachability::Unparsed, None),
+                ],
+            )
+            .unwrap();
+        assert!(run > 0);
+        assert_eq!(store.list_runs(10).unwrap()[0].total, 2);
+        assert!(store.reliability(10).unwrap().is_empty());
+    }
+
+    #[test]
+    fn delete_bridge_removes_it_from_the_library() {
+        let mut store = Store::open_in_memory().unwrap();
+        let meta = RunMeta {
+            started_unix: 1,
+            source: "manual".to_string(),
+            transport_filter: "all".to_string(),
+            deep: false,
+        };
+        store
+            .record_run(&meta, &[sample(Reachability::Reachable, Some(100))])
+            .unwrap();
+        assert_eq!(store.reliability(10).unwrap().len(), 1);
+
+        store.delete_bridge("abc123").unwrap();
+        assert!(store.reliability(10).unwrap().is_empty());
     }
 }

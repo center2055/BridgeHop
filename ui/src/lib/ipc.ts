@@ -132,6 +132,11 @@ export async function reliability(limit = 200): Promise<Reliability[]> {
   return invoke<Reliability[]>('reliability', { limit });
 }
 
+/** Remove a single bridge (and its recorded results) from the Library. */
+export async function deleteBridge(id: string): Promise<void> {
+  await invoke('delete_bridge', { id });
+}
+
 /** Delete all recorded scan history, clearing the Library. */
 export async function clearHistory(): Promise<void> {
   await invoke('clear_history');
