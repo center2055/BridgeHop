@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "bridgehop-app"
-version = "1.2.13"
+version = "1.2.14"
 dependencies = [
  "bridgehop-core",
  "rfd",
@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "bridgehop-cli"
-version = "1.2.13"
+version = "1.2.14"
 dependencies = [
  "bridgehop-core",
  "clap",
@@ -370,7 +370,7 @@ dependencies = [
 
 [[package]]
 name = "bridgehop-core"
-version = "1.2.13"
+version = "1.2.14"
 dependencies = [
  "base64 0.22.1",
  "directories",

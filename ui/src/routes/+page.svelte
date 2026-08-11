@@ -204,6 +204,14 @@
     }
   }
 
+  // Clear the pasted/loaded bridge lines so a fresh set can be entered.
+  function clearLines() {
+    linesText = '';
+    loadedSource = null;
+    sourceInfo = null;
+    error = null;
+  }
+
   async function copyRaw(raw: string) {
     try {
       await navigator.clipboard.writeText(raw);
@@ -351,7 +359,12 @@
 
   <div class="controls-grid">
     <div class="field bridges-field">
-      <label for="bridges">{t('scan.bridgeLines')}</label>
+      <div class="bridges-head">
+        <label for="bridges">{t('scan.bridgeLines')}</label>
+        {#if linesText.length > 0}
+          <button class="clear-lines" onclick={clearLines}>{t('scan.clearLines')}</button>
+        {/if}
+      </div>
       <textarea
         id="bridges"
         class="textarea"
@@ -555,6 +568,24 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text-muted);
+  }
+  .bridges-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .clear-lines {
+    border: none;
+    background: none;
+    color: var(--text-subtle);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+  }
+  .clear-lines:hover {
+    color: var(--down);
   }
   .settings {
     display: flex;
