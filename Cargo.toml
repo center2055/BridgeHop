@@ -3,6 +3,8 @@ resolver = "2"
 members = [
     "crates/bridgehop-core",
     "crates/bridgehop-cli",
+    "crates/hf-core",
+    "crates/hf-engine",
     "src-tauri",
 ]
 # Plain `cargo build`/`test`/`clippy` target the library and CLI, which don't need the built
@@ -10,6 +12,8 @@ members = [
 default-members = [
     "crates/bridgehop-core",
     "crates/bridgehop-cli",
+    "crates/hf-core",
+    "crates/hf-engine",
 ]
 
 [workspace.package]

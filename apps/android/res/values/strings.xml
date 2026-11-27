@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HopForge</string>
+    <string name="notif_channel">Connection</string>
+    <string name="notif_title">HopForge is connected</string>
+    <string name="notif_text">The local Tor proxy is running</string>
+    <string name="notif_stop">Disconnect</string>
+</resources>

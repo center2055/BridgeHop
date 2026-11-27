@@ -1,0 +1,20 @@
+[package]
+name = "hf-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "HopForge core: Tor bridge model, strict bridge-line parsing, canonical identity and the verification ladder vocabulary."
+publish = false
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+sha2 = "0.10"
+base64 = "0.22"
+
+[dev-dependencies]
+serde_json = { workspace = true }
+proptest = "1"

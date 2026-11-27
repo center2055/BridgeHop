@@ -1,0 +1,20 @@
+[package]
+name = "hf-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "HopForge engine: the JSON-line process that probes bridges and runs tor with the bundled pluggable transports."
+publish = false
+
+[[bin]]
+name = "hf-engine"
+path = "src/main.rs"
+
+[dependencies]
+hf-core = { path = "../hf-core" }
+serde_json = { workspace = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+webpki-roots = "0.26"
