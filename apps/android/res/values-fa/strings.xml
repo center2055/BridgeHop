@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">هاپ‌فورج</string>
+    <string name="notif_channel">اتصال</string>
+    <string name="notif_title">هاپ‌فورج متصل است</string>
+    <string name="notif_text">پروکسی محلی تور در حال اجراست</string>
+    <string name="notif_stop">قطع اتصال</string>
+</resources>

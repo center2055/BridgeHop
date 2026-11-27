@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>هاپ‌فورج</title>
+<style>
+:root{--bg:#0b1120;--card:#121a2e;--line:#22304d;--text:#e8eef9;--muted:#9fb0cc;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--accent:#34d399}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,"Noto Sans Arabic","Vazirmatn",Tahoma,sans-serif;line-height:1.7}
+body{padding:clamp(12px,4vw,28px);max-width:720px;margin:0 auto}
+h1{font-size:clamp(1.6rem,6vw,2.4rem);margin:0}
+.sub{color:var(--muted);margin:0 0 18px;font-size:.95rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:clamp(14px,4vw,22px);margin-bottom:14px}
+.card.warn{border-color:var(--warn)}
+h2{font-size:1rem;margin:0 0 8px}
+.status{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--muted);grid-row:span 2}
+.dot.connecting{background:var(--warn);animation:pulse 1.2s infinite}
+.dot.bootstrapped,.dot.connected{background:var(--ok)}
+.dot.failed{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+#phase{font-weight:700;font-size:1.15rem}
+#detail{color:var(--muted);font-size:.9rem;word-break:break-word}
+.bar{grid-column:1/-1;height:10px;border-radius:99px;background:#1c2740;overflow:hidden;margin-top:8px}
+#fill{height:100%;width:0;background:var(--accent);transition:width .4s}
+#pct{grid-column:1/-1;font-size:.85rem;color:var(--muted)}
+button.primary{width:100%;padding:16px;border:0;border-radius:16px;background:var(--accent);color:#04130b;font-size:1.15rem;font-weight:800;cursor:pointer;margin-bottom:14px}
+button.primary.stop{background:var(--bad);color:#fff}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.badge{font-size:.75rem;padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted);direction:ltr}
+.badge.pass{border-color:var(--ok);color:var(--ok)}
+.badge.fail{border-color:var(--bad);color:var(--bad)}
+code{direction:ltr;display:inline-block;background:#1c2740;padding:2px 8px;border-radius:6px}
+ul{margin:0;padding-inline-start:18px}
+li{margin:4px 0}
+#bridges{list-style:none;padding:0;margin:0;max-height:300px;overflow:auto}
+#bridges li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:6px 0;font-size:.85rem}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+.small{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>هاپ‌فورج</h1>
+  <p class="sub">اتصال خودکار به پل‌های تور؛ هر پل پیش از «متصل» اعلام‌شدن، واقعا آزموده می‌شود.</p>
+</header>
+
+<section class="card status">
+  <div id="dot" class="dot"></div>
+  <div id="phase">آماده</div>
+  <div id="detail">برای شروع، دکمهٔ اتصال را بزنید.</div>
+  <div class="bar"><div id="fill"></div></div>
+  <div id="pct">۰٪</div>
+  <div class="badges">
+    <span id="T1" class="badge">T1 reachable</span>
+    <span id="T3" class="badge">T3 handshake</span>
+    <span id="T4" class="badge">T4 bootstrap</span>
+    <span id="T5" class="badge">T5 end-to-end</span>
+  </div>
+</section>
+
+<button id="btn" class="primary">اتصال</button>
+
+<section class="card">
+  <h2>پروکسی محلی</h2>
+  <p class="small" style="margin:4px 0">این نسخه VPN نمی‌سازد. برنامه‌هایی که تنظیم پروکسی دارند (مثل تلگرام) را روی این نشانی بگذارید:</p>
+  <p style="margin:4px 0">SOCKS5: <code>127.0.0.1:<span id="socks">—</span></code></p>
+  <p style="margin:4px 0">HTTP: <code>127.0.0.1:<span id="http">—</span></code></p>
+</section>
+
+<section class="card">
+  <h2>آزمودن پل‌ها</h2>
+  <ul id="bridges"></ul>
+  <p id="bridges-empty" class="small">هنوز پلی آزموده نشده است.</p>
+</section>
+
+<section class="card warn">
+  <h2>پیش از استفاده بخوانید</h2>
+  <ul>
+    <li>فقط T5 یعنی ترافیک واقعاً از تور می‌گذرد؛ T1 و T3 به‌تنهایی «کار می‌کند» نیستند.</li>
+    <li>این برنامه ترافیک کل گوشی را عبور نمی‌دهد؛ فقط برنامه‌هایی که پروکسی را دستی تنظیم کرده‌اید.</li>
+    <li>پل‌ها با هر اتصال مصرف می‌شوند؛ بی‌نیاز وصل نشوید و بعد از استفاده قطع کنید.</li>
+    <li>نتایج این دستگاه، از دید این شبکه است؛ برای شبکه‌های دیگر تضمینی نیست.</li>
+  </ul>
+</section>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var fa = function (n) { return String(n).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); };
+  var PHASES = {idle:'آماده', connecting:'در حال اتصال…', bootstrapped:'تور بالا آمد؛ آزمایش مسیر…', connected:'متصل', failed:'اتصال ناموفق'};
+  var rows = 0;
+
+  function render(s) {
+    $('fill').style.width = (s.progress || 0) + '%';
+    $('pct').textContent = fa(s.progress || 0) + '٪ از راه‌اندازی';
+    $('dot').className = 'dot ' + (s.phase || 'idle');
+    $('phase').textContent = PHASES[s.phase] || s.phase || '';
+    $('detail').textContent = s.detail || '';
+    var busy = s.phase === 'connected' || s.phase === 'connecting' || s.phase === 'bootstrapped';
+    $('btn').textContent = busy ? 'قطع اتصال' : (s.phase === 'failed' ? 'تلاش دوباره' : 'اتصال');
+    $('btn').className = 'primary' + (busy ? ' stop' : '');
+    if (s.socks_port) {
+      $('socks').textContent = s.socks_port;
+      $('http').textContent = s.http_port;
+    }
+  }
+
+  function mark(tier, pass) {
+    var el = $(tier);
+    if (!el) return;
+    el.className = 'badge ' + (pass ? 'pass' : 'fail');
+    el.textContent = tier + (pass ? ' ✓' : ' ✗');
+  }
+
+  function addRow(e) {
+    if (rows >= 120) return;
+    var li = document.createElement('li');
+    var left = document.createElement('span');
+    left.textContent = (e.transport || '?') + ' · ' + (e.target || '');
+    var right = document.createElement('span');
+    right.className = e.ok ? 'ok' : 'bad';
+    right.textContent = e.ok ? ('T1 ' + fa(e.rtt_ms) + ' ms') : '✗';
+    right.dir = 'ltr';
+    li.appendChild(left);
+    li.appendChild(right);
+    $('bridges').appendChild(li);
+    rows++;
+    $('bridges-empty').style.display = 'none';
+  }
+
+  function onEvent(e) {
+    if (!e || !e.event) return;
+    if (e.event === 'probe') { if (e.ok) mark('T1', true); addRow(e); }
+    if (e.event === 'tier') { mark(e.tier, e.pass === true); }
+    if (e.event === 'failed') { $('detail').textContent = e.reason || ''; }
+  }
+
+  function snapshot() {
+    try { return JSON.parse(Native.state()); } catch (_) { return {phase: 'idle', progress: 0, history: []}; }
+  }
+
+  $('btn').onclick = function () {
+    var s = snapshot();
+    if (s.phase === 'connected' || s.phase === 'connecting' || s.phase === 'bootstrapped') { Native.stop(); }
+    else { rows = 0; $('bridges').innerHTML = ''; ['T1','T3','T4','T5'].forEach(function (t) { var el = $(t); el.className = 'badge'; el.textContent = t + (t === 'T1' ? ' reachable' : t === 'T3' ? ' handshake' : t === 'T4' ? ' bootstrap' : ' end-to-end'); }); $('bridges-empty').style.display = ''; Native.connect(); }
+  };
+
+  window.onEvent = onEvent;
+  var first = snapshot();
+  (first.history || []).forEach(onEvent);
+  render(first);
+  setInterval(function () { render(snapshot()); }, 1200);
+})();
+</script>
+</body>
+</html>
