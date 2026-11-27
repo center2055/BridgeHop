@@ -1,7 +1,7 @@
 # EVIDENCE
 
 Rule R3: only what was run in this session, with its exit code, is listed as verified. Everything
-else is UNVERIFIED. Machine: Linux x86_64 sandbox, 2 cores, 3 GB RAM, 2026-11-27.
+else is UNVERIFIED. Machine: Linux x86_64 sandbox, 2 cores, 3 GB RAM, 2026-11-27 (two sessions).
 Raw logs: `evidence/` in the delivered bundle (not all are in the repository).
 
 ## Verified this session
@@ -46,17 +46,31 @@ Bugs the run exposed in the engine, all fixed in `crates/hf-engine/src/main.rs`:
    parsed them in the other order, so it never saw progress and reported "timed out at 0 %" while
    tor had already bootstrapped.
 
+## Verified 2026-11-27 (second session, same day)
+
+| What | Command | Result | Exit |
+| --- | --- | --- | --- |
+| Android APK | `apps/android/build.sh` (NDK r30, arm64-v8a) | `HopForge-0.1.0.apk`, 67318608 bytes, sha256 `8f6f05a2245c8beb00ab10fc1afcaaed690822a1b8373d1d235345e4cc9f08e7` | 0 |
+| APK checks | `apps/android/verify.sh` | 62 checks, all pass: signature v2+v3 (one signer, certificate sha256 `57eb03182c689e609f676191cba7862889c4cf7267fe297be9269bcf47d01f25`), minSdk 24 / targetSdk 36, permissions, exported components, allowBackup=false, usesCleartextTraffic=false, 16 KB ELF alignment, only system libraries needed, no build-machine paths | 0 |
+| Build without warnings | `apps/android/build.sh` | after replacing D8 8.10.9 (build-tools 36, cannot read Kotlin 2.4 metadata) with D8 9.2.4 (Termux `d8` package) the log has no warning | 0 |
+| Rust tests, after the last engine change | `cargo test` | hf-core 13 + 18, hf-engine 7 passed | 0 |
+| Rust lints | `cargo clippy --all-targets -- -D warnings` | no warning | 0 |
+| Termux-style settings of the same script | `BT=… ANDROID_JAR=… NDK_BIN=… ANDROID_AR=… bash apps/android/build.sh` | APK identical to the SDK build (same CRC for every zip entry) — the path a Termux build takes | 0 |
+| Termux facts | read from the signed `Packages` index of packages.termux.dev | package names, versions, dependencies; `zipalign` does not exist in Termux; Termux clang adds `-rpath` into `$PREFIX/lib` unless `-fno-termux-rpath` is given (Termux's own libllvm patch) | 0 |
+
 ## Not verified (UNVERIFIED)
 
-- **APK**: `apps/android/build.sh` did not complete. Two build failures were fixed (rustflag
-  encoding, NDK r30 target triple) but the build was not rerun afterwards. There is no APK.
-- **On a phone, in Termux, in Iran**: nothing was run on a device. `scripts/termux-build.sh` in
-  the tree is the first draft: it still installs a `zipalign` package that does not exist in the
-  Termux index (verified on 2026-11-27) and must not be used as it is.
+- **On a phone, in Termux**: `scripts/termux-build.sh` was rewritten (real package names, no
+  `zipalign`, a compiler check before the build that rejects programs linked against Termux's own
+  libraries, automatic signing key) and is syntax-checked, but it has not been run on a device.
+  Linking with the phone's clang/lld, build time and memory use are unknown.
+- **This session's end-to-end Tor run**: the engine is the one that passed the run below in the
+  first session today, but the run was not repeated in the second session, so under this
+  project's rules it does not count as proven in the second session.
+- **Iran**: no test was made from inside Iran; reachability of GitHub, packages.termux.dev and
+  dl.google.com from there is unknown. No "works in Iran" claim is made.
 - **Google Play Protect**: a server-side verdict cannot be produced here. Only the hygiene rules
   (minimal permissions, hardened WebView, v2+v3 signature, 16 KB alignment, `verify.sh`) exist.
 - **Supply chain**: `cargo deny` exits 7 (6 rejected licenses, 9 RustSec advisories, wildcard
   dependencies). `cargo-audit` 0.23.0 is installed but was not run.
 - **Desktop app** (`src-tauri`): needs `gdk-3.0`, not available here; not built, not tested.
-- `cargo test` was last run before the final engine changes; those changes are in a binary crate
-  without tests of its own and are covered by the end-to-end run above.
