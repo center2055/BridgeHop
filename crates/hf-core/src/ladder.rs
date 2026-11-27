@@ -93,7 +93,9 @@ impl Tier {
             Tier::T0 | Tier::T4 | Tier::T5 | Tier::T6 => true,
             Tier::T1 => transport.is_direct(),
             Tier::T2 => matches!(transport, Transport::Vanilla | Transport::Webtunnel),
-            Tier::T3 => transport.is_dialable(),
+            // The transport handshake needs a pluggable transport client; vanilla has none (its
+            // link handshake is part of bootstrap, T4).
+            Tier::T3 => transport.sidecar().is_some(),
         }
     }
 

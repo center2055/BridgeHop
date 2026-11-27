@@ -3,17 +3,19 @@ package org.hopforge.app
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
 
 /**
  * The whole UI is one bundled page (`assets/ui/index.html`); this activity only hosts it and
@@ -31,16 +33,28 @@ class MainActivity : Activity() {
         web = WebView(this)
         with(web.settings) {
             javaScriptEnabled = true
+            // The page is bundled with the APK: nothing else may be read, opened or loaded here.
             allowFileAccess = false
             allowContentAccess = false
+            if (Build.VERSION.SDK_INT < 30) blockFileCrossOrigin()
             setGeolocationEnabled(false)
             mediaPlaybackRequiresUserGesture = true
+            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            setDomStorageEnabled(false)
+            if (Build.VERSION.SDK_INT >= 26) setSafeBrowsingEnabled(true)
         }
         web.addJavascriptInterface(Bridge(), "Native")
         web.webViewClient = object : WebViewClient() {
             // The page is bundled with the APK; no other URL may open inside it.
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
                 request.url.toString() != UI_URL
+
+            // ...and no other URL may even be fetched from inside it: every request that is not
+            // for a bundled asset is answered with an empty response.
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+                if (request.url.toString().startsWith(ASSET_PREFIX)) null else EMPTY_RESPONSE
         }
         setContentView(web)
         EngineService.events = { event ->
@@ -53,6 +67,13 @@ class MainActivity : Activity() {
         EngineService.events = null
         web.destroy()
         super.onDestroy()
+    }
+
+    /** Ignored from API 30 on, where both are always false; explicit for older releases. */
+    @Suppress("DEPRECATION")
+    private fun WebSettings.blockFileCrossOrigin() {
+        allowFileAccessFromFileURLs = false
+        allowUniversalAccessFromFileURLs = false
     }
 
     /** Methods the page calls through `window.Native`. Every call returns a JSON object. */
@@ -85,6 +106,11 @@ class MainActivity : Activity() {
 
     companion object {
         const val UI_URL = "file:///android_asset/ui/index.html"
+        private const val ASSET_PREFIX = "file:///android_asset/"
+
+        /** What every request for something that is not bundled with the app receives: nothing. */
+        private val EMPTY_RESPONSE =
+            WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0)))
 
         /** Bridge lines shipped with this build, one per line. */
         fun bundledBridges(context: Context): JSONArray {

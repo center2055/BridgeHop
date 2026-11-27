@@ -146,7 +146,8 @@ proptest! {
     #[test]
     fn direct_transports_never_keep_a_non_public_address(line in realistic_line()) {
         let Ok(bridge) = parse_line(&line) else { return Ok(()) };
-        if bridge.transport.is_direct() {
+        // webtunnel lines carry a placeholder address; only lines whose address is dialed must be public.
+        if bridge.transport.line_addr_is_identity() {
             prop_assert_eq!(hf_core::classify_addr(bridge.addr.ip()), hf_core::AddrClass::Public);
         }
     }
@@ -189,7 +190,12 @@ proptest! {
         keys.reverse();
         shuffled.args = keys.into_iter().filter_map(|k| one.get(&k).map(|v| (k, v.clone()))).collect();
         prop_assert_eq!(base.id(), shuffled.id());
-        let text = if keyword { format!("Bridge {}", base.tor_line()) } else { base.tor_line() };
+        // `tor_line()` already starts with the keyword; the parser must do without it as well.
+        let text = if keyword {
+            base.tor_line()
+        } else {
+            base.tor_line().strip_prefix("Bridge ").expect("tor_line starts with Bridge").to_string()
+        };
         let parsed = parse_line(&text).unwrap();
         prop_assert_eq!(parsed.id(), base.id());
     }

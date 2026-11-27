@@ -13,8 +13,9 @@
 //! measured by this process; T3 (transport handshake), T4 (bootstrap) and T5 (end to end) are
 //! observed through tor. A bridge is only reported "connected" after T5 passes.
 
+use std::collections::HashSet;
+use std::fmt::Write as _;
 use std::fs;
-use std::io::Write as _;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
@@ -153,18 +154,33 @@ struct Options {
     check_host: String,
 }
 
-fn path_of(req: &Value, key: &str, default: Option<&str>) -> Result<PathBuf, String> {
-    match req[key].as_str().or(default) {
+/// The directory of the engine's own executable. tor and the pluggable transports are shipped
+/// next to it (Android keeps all of them in the app's `nativeLibraryDir`).
+fn bin_dir() -> Option<PathBuf> {
+    std::env::current_exe()
+        .ok()?
+        .parent()
+        .map(Path::to_path_buf)
+}
+
+/// `$HOME/hopforge`: the working directory when the caller does not name one.
+fn home_work_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(|home| PathBuf::from(home).join("hopforge"))
+}
+
+fn path_of(req: &Value, key: &str, default: Option<PathBuf>) -> Result<PathBuf, String> {
+    match req[key].as_str() {
         Some(value) => Ok(PathBuf::from(value)),
-        None => Err(format!("connect: {key} missing")),
+        None => default.ok_or_else(|| format!("connect: {key} missing")),
     }
 }
 
 fn start_connect(req: &Value) -> Result<Value, String> {
+    let bin_dir = bin_dir();
     let opts = Options {
-        work_dir: path_of(req, "work_dir", None)?,
-        pt_dir: path_of(req, "pt_dir", None)?,
-        tor_bin: path_of(req, "tor_bin", None)?,
+        work_dir: path_of(req, "work_dir", home_work_dir())?,
+        pt_dir: path_of(req, "pt_dir", bin_dir.clone())?,
+        tor_bin: path_of(req, "tor_bin", bin_dir.map(|dir| dir.join("libtor.so")))?,
         timeout: Duration::from_secs(req["timeout_sec"].as_u64().unwrap_or(150)),
         probe_timeout: Duration::from_millis(req["timeout_ms"].as_u64().unwrap_or(3_000)),
         socks: req["socks_port"].as_u64().map(|p| p as u16),
@@ -178,6 +194,11 @@ fn start_connect(req: &Value) -> Result<Value, String> {
     if lines.is_empty() {
         return Err("connect: no bridge lines".into());
     }
+    // Fail now rather than after the probes have been sent.
+    if !opts.tor_bin.is_file() {
+        return Err(format!("tor not found at {}", opts.tor_bin.display()));
+    }
+    exec_path(&opts.pt_dir)?;
     stop()?;
     thread::spawn(move || {
         if let Err(reason) = connect(&opts, &lines) {
@@ -358,7 +379,6 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
     // What answered goes to tor fastest first, each transport under its own quota; fronted
     // transports cannot be pre-probed, so they follow in the feed's order.
     let mut ordered: Vec<Bridge> = Vec::new();
-    let mut plan = serde_json::Map::new();
     for (transport, quota) in [
         (Transport::Obfs4, 24),
         (Transport::Vanilla, 4),
@@ -371,22 +391,38 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
             .collect();
         reach.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.id().cmp(&b.1.id())));
         reach.truncate(quota);
-        plan.insert(transport.name().to_string(), json!(reach.len()));
         ordered.extend(reach.into_iter().map(|(_, bridge)| bridge));
     }
-    for (transport, quota) in [
-        (Transport::Snowflake, 3),
-        (Transport::MeekLite, 3),
-        (Transport::Conjure, 2),
+    // Fronted transports cannot be pre-probed, so they follow in the feed's order, one line
+    // each.
+    for transport in [
+        Transport::Snowflake,
+        Transport::MeekLite,
+        Transport::Conjure,
     ] {
-        let picked: Vec<Bridge> = bridges
+        if let Some(bridge) = bridges.iter().find(|bridge| bridge.transport == transport) {
+            ordered.push(bridge.clone());
+        }
+    }
+    // tor keeps only the last line of those that share an address and port and drops the rest
+    // without a word (`bridge_resolve_conflicts` in tor's bridges.c). Every fronted transport
+    // uses the same placeholder endpoint, so the one listed first here is the one that stays.
+    let mut endpoints = HashSet::new();
+    ordered.retain(|bridge| endpoints.insert(bridge.addr));
+    let mut plan = serde_json::Map::new();
+    for transport in [
+        Transport::Obfs4,
+        Transport::Vanilla,
+        Transport::Webtunnel,
+        Transport::Snowflake,
+        Transport::MeekLite,
+        Transport::Conjure,
+    ] {
+        let count = ordered
             .iter()
             .filter(|bridge| bridge.transport == transport)
-            .take(quota)
-            .cloned()
-            .collect();
-        plan.insert(transport.name().to_string(), json!(picked.len()));
-        ordered.extend(picked);
+            .count();
+        plan.insert(transport.name().to_string(), json!(count));
     }
     emit(&json!({
         "event": "plan",
@@ -416,11 +452,9 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
     let _ = writeln!(torrc, "HTTPTunnelPort 127.0.0.1:{http}");
     let _ = writeln!(torrc, "ControlPort 127.0.0.1:{control}");
     torrc.push_str("CookieAuthentication 1\nUseBridges 1\n");
-    let _ = writeln!(
-        torrc,
-        "Log notice file {}",
-        quote(&opts.work_dir.join("tor.log"))
-    );
+    // tor's `Log ... file` option takes no quoting, so its path could not contain a space; its
+    // stderr is captured into tor.log by the engine instead (see below).
+    torrc.push_str("Log notice stderr\n");
     for (transports, sidecar) in [
         ("obfs4,meek_lite", "lyrebird"),
         ("webtunnel", "webtunnel"),
@@ -431,24 +465,30 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
             let _ = writeln!(
                 torrc,
                 "ClientTransportPlugin {transports} exec {}",
-                quote(&path)
+                exec_path(&path)?
             );
         }
     }
     for bridge in &ordered {
-        let _ = writeln!(torrc, "Bridge {}", bridge.tor_line());
+        let _ = writeln!(torrc, "{}", bridge.tor_line());
     }
     let torrc_path = opts.work_dir.join("torrc");
     fs::write(&torrc_path, torrc).map_err(|err| format!("cannot write torrc: {err}"))?;
 
+    let log_path = opts.work_dir.join("tor.log");
+    let log = fs::File::create(&log_path)
+        .map_err(|err| format!("cannot create {}: {err}", log_path.display()))?;
+    let log_err = log
+        .try_clone()
+        .map_err(|err| format!("cannot open {} twice: {err}", log_path.display()))?;
     let child = Command::new(&opts.tor_bin)
         .arg("-f")
         .arg(&torrc_path)
         .current_dir(&opts.work_dir)
         .env("HOME", &opts.work_dir)
         .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stdout(Stdio::from(log))
+        .stderr(Stdio::from(log_err))
         .spawn()
         .map_err(|err| format!("cannot start {}: {err}", opts.tor_bin.display()))?;
     let tor = Arc::new(Mutex::new(child));
@@ -580,6 +620,25 @@ fn sidecar_path(pt_dir: &Path, sidecar: &str) -> Option<PathBuf> {
     plain.is_file().then_some(plain)
 }
 
+/// The transport executable as tor wants it: tor splits `ClientTransportPlugin ... exec` on
+/// spaces and knows no quoting (the quotes would become part of the file name), so a path with a
+/// space in it cannot be passed on. Android keeps the transports in `nativeLibraryDir`, which
+/// never has one; elsewhere it is refused with the reason instead of a connect that never starts.
+fn exec_path(path: &Path) -> Result<String, String> {
+    let text = path.display().to_string();
+    if text
+        .chars()
+        .any(|c| c.is_whitespace() || matches!(c, '"' | '\'' | '\\'))
+    {
+        return Err(format!(
+            "{}: tor cannot start a transport from a path with spaces or quotes in it",
+            text
+        ));
+    }
+    Ok(text)
+}
+
+/// A configuration *value* (not the `exec` clause): tor unquotes these itself.
 fn quote(path: &Path) -> String {
     format!("\"{}\"", path.display())
 }
@@ -676,56 +735,62 @@ fn watch_control(addr: SocketAddr, cookie: Vec<u8>, tx: mpsc::Sender<Value>) {
     let _ = tx.send(json!({ "event": "control_lost" }));
 }
 
-/// Control-port `650` lines: bootstrap progress becomes `progress`, warnings become `log`.
+/// Control-port `650` lines exactly as tor 0.4 sends them. Status events carry the keyword
+/// first: `STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=40 TAG=loading_keys SUMMARY="..."`; log
+/// messages are only `NOTICE <message>` / `WARN <message>`. Bootstrap progress becomes
+/// `progress`, warnings become `log`, and the log copy of each bootstrap step is dropped
+/// because the `progress` event already carries it.
 fn parse_event(line: &str) -> Option<Value> {
     let line = line.trim_end_matches(['\r', '\n']);
-    let mut fields = line.splitn(5, ' ');
-    if fields.next()? != "650" {
+    let (code, rest) = line.split_once(' ')?;
+    if code != "650" {
         return None;
     }
-    let severity = fields.next()?;
-    let topic = fields.next()?;
-    let action = fields.next()?;
-    let rest = fields.next().unwrap_or("");
-    match (topic, action) {
-        ("STATUS_CLIENT", "BOOTSTRAP") => {
-            let progress = kv(rest, "PROGRESS")
-                .and_then(|v| v.parse::<u8>().ok())
-                .unwrap_or(0);
-            let summary = kv(rest, "SUMMARY").unwrap_or("");
-            if severity == "NOTICE" {
-                Some(json!({ "event": "progress", "progress": progress, "summary": summary }))
-            } else {
-                let warning = kv(rest, "WARNING")
-                    .or_else(|| kv(rest, "REASON"))
-                    .unwrap_or(summary);
-                Some(
-                    json!({ "event": "log", "severity": severity, "progress": progress, "detail": warning }),
-                )
-            }
-        }
-        ("STATUS_CLIENT", "CIRCUIT_ESTABLISHED") => Some(json!({ "event": "circuit" })),
-        ("STATUS_CLIENT", _) => None,
-        _ => Some(
-            json!({ "event": "log", "severity": severity, "detail": format!("{topic} {action} {rest}") }),
-        ),
+    let (keyword, severity, args) = split_status(rest);
+    match keyword {
+        Some("STATUS_CLIENT") if args.starts_with("BOOTSTRAP ") => bootstrap(severity, args),
+        Some("STATUS_CLIENT") if args == "CIRCUIT_ESTABLISHED" => Some(json!({ "event": "circuit" })),
+        Some(_) => None,
+        None if args.starts_with("Bootstrapped ") => None,
+        None => Some(json!({ "event": "log", "severity": severity, "detail": rest })),
     }
 }
 
-/// `KEY=VALUE` or `KEY="quoted value"` inside a control-port event.
-fn kv<'a>(rest: &'a str, key: &str) -> Option<&'a str> {
-    let prefix = format!("{key}=");
-    let start = if let Some(stripped) = rest.strip_prefix(&prefix) {
-        stripped
-    } else {
-        let marker = format!(" {key}=");
-        &rest[rest.find(&marker)? + 1..]
-    };
-    let value = &start[key.len() + 1..];
-    if let Some(quoted) = value.strip_prefix('"') {
-        Some(&quoted[..quoted.find('"')?])
-    } else {
-        Some(value.split(' ').next().unwrap_or(""))
+/// `STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=..` is one status event: its keyword, severity and
+/// arguments. Anything else is a log message, reported with keyword `None` so that the message
+/// stays whole.
+fn split_status(rest: &str) -> (Option<&str>, &str, &str) {
+    let (first, tail) = rest.split_once(' ').unwrap_or((rest, ""));
+    if first != "STATUS_CLIENT" {
+        return (None, first, tail);
+    }
+    let (severity, args) = tail.split_once(' ').unwrap_or((tail, ""));
+    (Some(first), severity, args)
+}
+
+/// `BOOTSTRAP PROGRESS=40 TAG=loading_keys SUMMARY="..."`; failures add `WARNING=` and `REASON=`.
+fn bootstrap(severity: &str, args: &str) -> Option<Value> {
+    let progress = kv(args, "PROGRESS").and_then(|value| value.parse::<u8>().ok());
+    let summary = kv(args, "SUMMARY").unwrap_or("");
+    if severity == "NOTICE" {
+        return Some(json!({ "event": "progress", "progress": progress?, "summary": summary }));
+    }
+    let warning = kv(args, "WARNING")
+        .or_else(|| kv(args, "REASON"))
+        .unwrap_or(summary);
+    Some(json!({ "event": "log", "severity": severity, "progress": progress, "detail": warning }))
+}
+
+/// `KEY=VALUE` or `KEY="quoted value"` in a control-port event's arguments.
+fn kv<'a>(args: &'a str, key: &str) -> Option<&'a str> {
+    let at = args.find(&*format!("{key}="))?;
+    if at > 0 && !args[..at].ends_with(' ') {
+        return None;
+    }
+    let value = &args[at + key.len() + 1..];
+    match value.strip_prefix('"') {
+        Some(quoted) => Some(&quoted[..quoted.find('"')?]),
+        None => Some(value.split(' ').next().unwrap_or("")),
     }
 }
 

@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.graphics.drawable.Icon
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -74,6 +75,10 @@ class EngineService : Service() {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
         }
+        val disconnect = Notification.Action.Builder(
+            Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
+            string("notif_stop"), stop
+        ).build()
         val notification = builder
             .setSmallIcon(android.R.drawable.ic_secure)
             .setContentTitle(string("notif_title"))
@@ -81,7 +86,7 @@ class EngineService : Service() {
             .setContentIntent(launch)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(0, string("notif_stop"), stop)
+            .addAction(disconnect)
             .build()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -127,6 +132,16 @@ class EngineService : Service() {
         val event = try {
             JSONObject(line)
         } catch (_: Exception) {
+            return
+        }
+        if (!event.has("event")) {
+            // The reply to a command rather than an event. A refusal (ok=false with the reason)
+            // is shown as a failure instead of leaving the user waiting.
+            if (event.has("error")) {
+                phase = "failed"
+                detail = event.optString("error", "refused")
+            }
+            record(event)
             return
         }
         when (event.optString("event")) {
@@ -212,11 +227,20 @@ class EngineService : Service() {
         }
     }
 
+    /** Sends every command that was queued while no engine was running. */
+    fun flushPending() {
+        while (true) {
+            val line = synchronized(pending) { pending.pollFirst() } ?: return
+            send(line)
+        }
+    }
+
     companion object {
         private const val CHANNEL = "hopforge"
         private const val NOTIFICATION_ID = 1
         private const val ENGINE_BIN = "libhopforge.so"
         private const val MAX_HISTORY = 400
+        private const val ACTION_STOP = "org.hopforge.app.STOP"
 
         @Volatile var phase = "idle"
         @Volatile var progress = 0
@@ -239,13 +263,6 @@ class EngineService : Service() {
         fun command(request: JSONObject): JSONObject {
             val sent = instance?.send(request.toString()) ?: false
             return JSONObject().put("ok", sent)
-        }
-
-        private fun flushPending() {
-            while (true) {
-                val line = synchronized(pending) { pending.pollFirst() } ?: return
-                send(line)
-            }
         }
 
         fun snapshot(): JSONObject {

@@ -51,7 +51,7 @@ build_one() {
   fi
   mkdir -p "$dir"
   (cd "$module" && GOOS=$goos GOARCH=$goarch CGO_ENABLED=0 go build -trimpath -buildvcs=false \
-    ">-ldflags "-s -w -buildid= -checklinkname=0"< -o "$dir/$name" "$pkg")
+    -ldflags "-s -w -buildid= -checklinkname=0" -o "$dir/$name" "$pkg")
   # Report the exact module versions that went into the binary.
   go version -m "$dir/$name" | awk '$1 == "dep" || $1 == "mod" {print}' | sed 's#^#    #'
 }

@@ -151,9 +151,10 @@ impl Transport {
         matches!(self.dial_target(), DialTarget::Fronted)
     }
 
-    /// Whether HopForge can dial this transport at all with the binaries it ships.
+    /// Whether HopForge can dial this transport at all: tor itself speaks vanilla, the bundled
+    /// sidecars speak the rest. [`Transport::Unknown`] lines are kept but never dialed.
     pub fn is_dialable(&self) -> bool {
-        self.sidecar().is_some()
+        matches!(self, Transport::Vanilla) || self.sidecar().is_some()
     }
 }
 
@@ -229,6 +230,7 @@ mod tests {
         assert!(Transport::Obfs4.is_direct() && !Transport::Obfs4.is_fronted());
         assert!(Transport::Webtunnel.is_direct() && !Transport::Webtunnel.line_addr_is_identity());
         assert!(Transport::Snowflake.is_fronted() && !Transport::Snowflake.is_direct());
+        assert!(Transport::Vanilla.is_dialable());
         assert!(!Transport::Unknown("obfs3".into()).is_dialable());
     }
 

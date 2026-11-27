@@ -1,0 +1,8 @@
+/target/
+/build/
+/dist/
+*.p12
+*.pass
+*.jks
+*.keystore
+*.log

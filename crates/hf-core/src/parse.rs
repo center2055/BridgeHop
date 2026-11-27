@@ -443,12 +443,9 @@ pub struct Url<'a> {
 impl<'a> Url<'a> {
     /// Parses `http://host[:port][/path]` or `https://host[:port][/path]`.
     pub fn parse(value: &'a str) -> Option<Self> {
-        let (secure, rest) = if let Some(rest) = value.strip_prefix("https://") {
-            (true, rest)
-        } else if let Some(rest) = value.strip_prefix("http://") {
-            (false, rest)
-        } else {
-            return None;
+        let (secure, rest) = match value.strip_prefix("https://") {
+            Some(rest) => (true, rest),
+            None => (false, value.strip_prefix("http://")?),
         };
         let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
         let (host, port_str) = split_host_port(authority)?;
@@ -595,10 +592,10 @@ pub fn parse_line(line: &str) -> Result<Bridge, ParseError> {
                 ));
             }
             let key = key.to_ascii_lowercase();
-            if args.contains_key(&key) {
-                issues.push(Issue::DuplicateArg);
+            if let std::collections::btree_map::Entry::Vacant(slot) = args.entry(key) {
+                slot.insert(value.to_string());
             } else {
-                args.insert(key, value.to_string());
+                issues.push(Issue::DuplicateArg);
             }
         } else if !fingerprint_seen && looks_like_fingerprint(token) {
             fingerprint = Some(token.parse()?);
@@ -950,7 +947,7 @@ fn validate(bridge: &mut Bridge) -> Result<(), ParseError> {
     if bridge.fingerprint.is_none() {
         bridge.issues.push(Issue::MissingFingerprint);
     }
-    if !transport.is_dialable() && !matches!(transport, Transport::Vanilla) {
+    if !transport.is_dialable() {
         bridge.issues.push(Issue::UnsupportedTransport);
     }
 

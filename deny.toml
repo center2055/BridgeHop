@@ -1,0 +1,42 @@
+# cargo-deny policy (https://embarkstudios.github.io/cargo-deny). Run: cargo deny check
+#
+# HopForge's own code is GPL-3.0-or-later. Every dependency license below is compatible with it
+# (permissive or MPL-2.0's file-level copyleft). Anything else has to be listed under
+# [licenses.exceptions] with the reason it is acceptable.
+
+[graph]
+# The Tauri desktop shell is upstream BridgeHop's; its native GUI dependencies are not shipped
+# in HopForge's Android app or engine.
+exclude = ["bridgehop-app"]
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "OpenSSL",
+    "MPL-2.0",
+    "CC0-1.0",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+[advisories]
+version = 2
+yanked = "deny"
