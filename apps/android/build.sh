@@ -19,6 +19,7 @@
 #   ANDROID_JAR=...      the platform's android.jar
 #   NDK_BIN=...          directory with the clang driver for the Android targets (default: the
 #                        NDK's prebuilt bin for this host; in Termux: $PREFIX/bin)
+#   HOPFORGE_CC_FLAGS    extra flags for those compiler drivers (see cc-wrappers.sh)
 #   ANDROID_AR=...       the archiver (default: $NDK_BIN/llvm-ar)
 #   ANDROID_API=...      API level the native code is compiled for (default 24, the app's minSdk)
 #   PT_DIR=...           reuse sidecars already built by pt-sidecars/build.sh
