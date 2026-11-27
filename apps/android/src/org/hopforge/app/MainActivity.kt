@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.view.WindowInsets
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -57,11 +59,34 @@ class MainActivity : Activity() {
                 if (request.url.toString().startsWith(ASSET_PREFIX)) null else EMPTY_RESPONSE
         }
         setContentView(web)
+        // Apps targeting SDK 35 and later draw behind the system bars on Android 15 and later
+        // (developer.android.com/develop/ui/views/layout/edge-to-edge), so the page is moved
+        // clear of the bars and of any display cutout. Older systems already fit the window.
+        web.setOnApplyWindowInsetsListener { view, insets -> padForSystemBars(view, insets) }
+        web.requestApplyInsets()
         EngineService.events = { event ->
-            ui.post { if (::web.isInitialized) web.evaluateJavascript("window.onEvent($event);", null) }
+            ui.post { if (::web.isInitialized) web.evaluateJavascript("window.onEvent(${js(event)});", null) }
         }
         web.loadUrl(UI_URL)
     }
+
+    /** Keeps the page out from under the status bar, the navigation bar and the cutout. */
+    private fun padForSystemBars(view: View, insets: WindowInsets): WindowInsets {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+        } else {
+            @Suppress("DEPRECATION")
+            view.setPadding(
+                insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                insets.systemWindowInsetRight, insets.systemWindowInsetBottom
+            )
+        }
+        return insets
+    }
+
+    /** The event as a JavaScript string literal, parsed by the page: no event text can become code. */
+    private fun js(event: JSONObject): String = JSONObject.quote(event.toString())
 
     override fun onDestroy() {
         EngineService.events = null

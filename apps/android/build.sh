@@ -2,19 +2,30 @@
 # Builds the HopForge Android APK without Gradle:
 #   Go sidecars + tor (Guardian AAR) + Rust engine -> aapt2 -> kotlinc -> d8 -> zipalign -> apksigner -> verify.sh
 #
-# Needs: ANDROID_HOME (build-tools and a platform; an NDK unless CC_WRAPPERS_DIR is set), a JDK
-# (keytool), Go, Rust with the Android targets installed, and kotlinc (KOTLINC=/path/to/kotlinc/bin/kotlinc,
-# or on PATH).
+# It runs in two places with the same code: on a desktop (cross-compiling with an NDK) and on the
+# phone itself, in Termux (compiled by the device's own clang for its own CPU).
+#
+# Needs: a clang driver for Android targets (an NDK's, or Termux's $PREFIX/bin), aapt2, d8 and
+# apksigner (Android build-tools, or Termux's packages), android.jar, a JDK (keytool), Go, Rust
+# with the Android target installed, and kotlinc.
 #
 #   OUT=...              output directory (default build/android)
 #   ABIS="arm64-v8a"     ABIs to package (default: arm64-v8a)
+#   ANDROID_HOME=...     Android SDK: its build-tools, platforms and ndk are the defaults for
+#                        everything below (not needed when BT, ANDROID_JAR and NDK_BIN are set)
+#   BT=...               directory with aapt2, d8, apksigner (and zipalign, if it exists there)
+#   D8=...               the dexer (default: $BT/d8). The D8 of build-tools 36 (8.10.9) cannot
+#                        read Kotlin 2.4's metadata and warns about every class; D8 9.2 does not.
+#   ANDROID_JAR=...      the platform's android.jar
+#   NDK_BIN=...          directory with the clang driver for the Android targets (default: the
+#                        NDK's prebuilt bin for this host; in Termux: $PREFIX/bin)
+#   ANDROID_AR=...       the archiver (default: $NDK_BIN/llvm-ar)
+#   ANDROID_API=...      API level the native code is compiled for (default 24, the app's minSdk)
 #   PT_DIR=...           reuse sidecars already built by pt-sidecars/build.sh
 #   TOR_DIR=...          reuse <dir>/<abi>/libtor.so instead of downloading the AAR
 #   TOR_URL=...          where to download the tor-android AAR when TOR_DIR is unset (pinned below)
 #   KEYSTORE=...         signing key (created next to OUT on first use; its password lives in
 #                        KEYSTORE.pass, mode 600, and is never passed on a command line)
-#   CC_WRAPPERS_DIR=...  use ready-made cc-<triple> scripts instead of the NDK (Termux compiles
-#                        for its own CPU with its own clang); ANDROID_AR must then name an archiver
 #   SKIP_VERIFY=1        do not run verify.sh at the end (not recommended)
 #
 # Nothing here needs root, Gradle, Python or a Google account.
@@ -44,15 +55,18 @@ triple_of() {
     esac
 }
 latest() { ls "$1" | sort -V | tail -n 1; }
-need() { command -v "$1" >/dev/null 2>&1 || { echo "missing: $1 ($2)" >&2; exit 1; }; }
+need() { command -v "$1" > /dev/null 2>&1 || { echo "missing: $1 ($2)" >&2; exit 1; }; }
 
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-[ -n "$SDK" ] || { echo "set ANDROID_HOME to the Android SDK" >&2; exit 1; }
-BT="${BT:-$SDK/build-tools/$(latest "$SDK/build-tools")}"
-ANDROID_JAR="${ANDROID_JAR:-$SDK/platforms/$(latest "$SDK/platforms")/android.jar}"
+NDK="${ANDROID_NDK_HOME:-${SDK:+$SDK/ndk/$(latest "$SDK/ndk")}}"
+BT="${BT:-${SDK:+$SDK/build-tools/$(latest "$SDK/build-tools")}}"
+D8="${D8:-${BT:+$BT/d8}}"
+ANDROID_JAR="${ANDROID_JAR:-${SDK:+$SDK/platforms/$(latest "$SDK/platforms")/android.jar}}"
 KOTLINC="${KOTLINC:-$(command -v kotlinc || true)}"
-ZIPALIGN="${ZIPALIGN:-$BT/zipalign}"
-export READELF="${READELF:-$(command -v readelf || true)}"
+ZIPALIGN="${ZIPALIGN:-${BT:+$BT/zipalign}}"
+NDK_BIN="${NDK_BIN:-${NDK:+$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin}}"
+AR="${ANDROID_AR:-${NDK_BIN:+$NDK_BIN/llvm-ar}}"
+export READELF="${READELF:-$(command -v readelf || command -v llvm-readelf || true)}"
 
 triples=()
 for abi in $ABIS; do triples+=("$(triple_of "$abi")"); done
@@ -64,37 +78,50 @@ need zip "zip"
 need unzip "unzip"
 need curl "curl"
 need sha256sum "coreutils"
-for tool in aapt2 d8 apksigner; do
-    [ -x "$BT/$tool" ] || { echo "missing: $BT/$tool (Android build-tools)" >&2; exit 1; }
-done
+[ -n "$BT" ] || { echo "set BT to the Android build-tools directory (aapt2, d8, apksigner)" >&2; exit 1; }
+[ -x "$BT/aapt2" ] && [ -x "$BT/apksigner" ] || {
+    echo "missing: $BT/aapt2 or $BT/apksigner (Android build-tools)" >&2
+    exit 1
+}
+[ -x "$D8" ] || { echo "missing: $D8 (set D8 to a D8 9 or newer, e.g. Termux's d8 package)" >&2; exit 1; }
 [ -f "$ANDROID_JAR" ] || { echo "missing: $ANDROID_JAR (Android platform)" >&2; exit 1; }
 [ -n "$KOTLINC" ] && [ -x "$KOTLINC" ] || { echo "missing: kotlinc (set KOTLINC=/path/to/kotlinc/bin/kotlinc)" >&2; exit 1; }
-[ -n "$READELF" ] || { echo "missing: readelf (binutils)" >&2; exit 1; }
-
-# The compiler: either the NDK's clang (driven through the wrappers that cc-wrappers.sh writes)
-# or the caller's own cc-<triple> scripts.
-if [ -z "${CC_WRAPPERS_DIR:-}" ]; then
-    NDK="${ANDROID_NDK_HOME:-$SDK/ndk/$(latest "$SDK/ndk")}"
-    NDK_BIN="${NDK_BIN:-$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin}"
-    [ -x "$NDK_BIN/clang" ] || { echo "missing: $NDK_BIN/clang (Android NDK)" >&2; exit 1; }
-    AR="${ANDROID_AR:-$NDK_BIN/llvm-ar}"
-else
-    WRAPPERS="$CC_WRAPPERS_DIR"
-    # Where the linker driver looks for ld.lld; Termux has it on PATH already.
-    NDK_BIN="${NDK_BIN:-}"
-    AR="${ANDROID_AR:-CC_WRAPPERS_DIR is set, so ANDROID_AR must name llvm-ar}"
-    [ -x "$AR" ] || { echo "$AR" >&2; exit 1; }
-fi
+[ -n "$READELF" ] || { echo "missing: readelf (binutils, or llvm-readelf)" >&2; exit 1; }
+[ -n "$NDK_BIN" ] && [ -x "$NDK_BIN/clang" ] || {
+    echo "missing: a clang driver for Android targets (set NDK_BIN to the NDK's toolchains/llvm/prebuilt/<host>/bin, or in Termux to \$PREFIX/bin)" >&2
+    exit 1
+}
+[ -x "$AR" ] || { echo "missing: the archiver (set ANDROID_AR to llvm-ar)" >&2; exit 1; }
 
 rm -rf "$WORK"
 mkdir -p "$WORK/tor" "$WORK/apk/lib" "$WORK/dex" "$OUT"
 
-# 1. Pluggable transports and tor, one directory per ABI.
+# One compiler driver per target (see cc-wrappers.sh). Android has no /bin/sh, so the wrappers
+# name the shell that runs them.
+shell=/bin/sh
+[ -x "$shell" ] || shell="$(command -v sh)"
+"$shell" "$APP/cc-wrappers.sh" "$NDK_BIN" "$WORK" "$ANDROID_API" "$shell" "${triples[@]}"
+# The linker driver (ld.lld) is looked up next to clang or on PATH.
+export PATH="$NDK_BIN:$PATH"
+for abi in $ABIS; do
+    triple="$(triple_of "$abi")"
+    upper="$(printf '%s' "$triple" | tr 'a-z-' 'A-Z_')"
+    lower="$(printf '%s' "$triple" | tr 'A-Z-' 'a-z_')"
+    abi_var="$(printf '%s' "$abi" | tr -- '-' '_')"
+    export "ANDROID_CC_$abi_var=$WORK/cc-$triple"
+    export "CARGO_TARGET_${upper}_LINKER=$WORK/cc-$triple"
+    export "CC_${lower}=$WORK/cc-$triple"
+    export "AR_${lower}=$AR"
+done
+
+# 1. Pluggable transports and tor, one directory per ABI. The transports are built with cgo
+# (see pt-sidecars/build.sh) through the compiler drivers prepared above.
 if [ -n "${PT_DIR:-}" ]; then
     PT="$PT_DIR"
 else
     PT="$WORK/pt"
-    "$ROOT/pt-sidecars/build.sh" "$PT" $(for abi in $ABIS; do printf 'android/%s ' "$abi"; done)
+    # shellcheck disable=SC2046 # one target word per ABI is what the script takes
+    bash "$ROOT/pt-sidecars/build.sh" "$PT" $(for abi in $ABIS; do printf 'android/%s ' "$abi"; done)
 fi
 if [ -n "${TOR_DIR:-}" ]; then
     for abi in $ABIS; do mkdir -p "$WORK/tor/$abi"; cp "$TOR_DIR/$abi/libtor.so" "$WORK/tor/$abi/"; done
@@ -106,22 +133,18 @@ else
 fi
 
 # 2. The engine for each ABI: the same code that is tested on the desktop, cross-compiled.
-if [ -z "${CC_WRAPPERS_DIR:-}" ]; then
-    WRAPPERS="$WORK"
-    "$APP/cc-wrappers.sh" "$NDK_BIN" "$WORK" "$ANDROID_API" "${triples[@]}"
-fi
 # 16 KB pages: Android 15+ devices with a 16 KB page size need LOAD segments aligned to 16384.
 # CARGO_ENCODED_RUSTFLAGS separates arguments with the 0x1f byte (not spaces).
+# Nothing in the binary may say where it was built: cargo hands rustc the absolute path of every
+# crate it fetched and rustc keeps those paths for panic messages, so the package cache path is
+# rewritten. (verify.sh looks for the build machine's paths in the result.)
 flags="${CARGO_ENCODED_RUSTFLAGS:-}"
 [ -n "$flags" ] && flags="$flags"$'\x1f'
+CH="${CARGO_HOME:-$HOME/.cargo}"
+flags="$flags--remap-path-prefix=$CH/registry/src=/registry"$'\x1f'
 export CARGO_ENCODED_RUSTFLAGS="${flags}-C"$'\x1f'"link-arg=-Wl,-z,max-page-size=16384"
+export HOPFORGE_BUILD_PATHS="$ROOT $CH"
 for triple in "${triples[@]}"; do
-    upper="$(printf '%s' "$triple" | tr 'a-z-' 'A-Z_')"
-    lower="$(printf '%s' "$triple" | tr 'A-Z-' 'a-z_')"
-    export "CARGO_TARGET_${upper}_LINKER=$WRAPPERS/cc-$triple"
-    export "CC_${lower}=$WRAPPERS/cc-$triple"
-    export "AR_${lower}=$AR"
-    if [ -n "$NDK_BIN" ]; then export PATH="$NDK_BIN:$PATH"; fi
     (cd "$ROOT" && cargo build --release --target "$triple" -p hf-engine)
 done
 
@@ -132,7 +155,7 @@ done
     -R "$WORK/res.zip" -A "$APP/assets" --auto-add-overlay
 mapfile -t sources < <(find "$APP/src" -name '*.kt' | sort)
 "$KOTLINC" -jvm-target 1.8 -classpath "$ANDROID_JAR" -d "$WORK/classes.jar" "${sources[@]}"
-"$BT/d8" --release --min-api "$ANDROID_API" --lib "$ANDROID_JAR" --output "$WORK/dex" "$WORK/classes.jar"
+"$D8" --release --min-api "$ANDROID_API" --lib "$ANDROID_JAR" --output "$WORK/dex" "$WORK/classes.jar"
 
 # 4. Assemble: dex plus the native executables (uncompressed, page-aligned).
 cp "$WORK/base.apk" "$WORK/unsigned.apk"

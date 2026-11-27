@@ -436,6 +436,10 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
 
     let data = opts.work_dir.join("data");
     fs::create_dir_all(&data).map_err(|err| format!("cannot create {}: {err}", data.display()))?;
+    // Android has no writable temporary directory of its own for apps (/data/local/tmp is not
+    // ours), and tor passes its environment on to the transports, so all of them get one here.
+    let tmp = opts.work_dir.join("tmp");
+    fs::create_dir_all(&tmp).map_err(|err| format!("cannot create {}: {err}", tmp.display()))?;
     let socks = match opts.socks {
         Some(port) => port,
         None => free_port().ok_or("no free SOCKS port")?,
@@ -486,6 +490,7 @@ fn connect(opts: &Options, lines: &[String]) -> Result<(), String> {
         .arg(&torrc_path)
         .current_dir(&opts.work_dir)
         .env("HOME", &opts.work_dir)
+        .env("TMPDIR", &tmp)
         .stdin(Stdio::null())
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(log_err))
@@ -749,7 +754,9 @@ fn parse_event(line: &str) -> Option<Value> {
     let (keyword, severity, args) = split_status(rest);
     match keyword {
         Some("STATUS_CLIENT") if args.starts_with("BOOTSTRAP ") => bootstrap(severity, args),
-        Some("STATUS_CLIENT") if args == "CIRCUIT_ESTABLISHED" => Some(json!({ "event": "circuit" })),
+        Some("STATUS_CLIENT") if args == "CIRCUIT_ESTABLISHED" => {
+            Some(json!({ "event": "circuit" }))
+        }
         Some(_) => None,
         None if args.starts_with("Bootstrapped ") => None,
         None => Some(json!({ "event": "log", "severity": severity, "detail": rest })),

@@ -148,9 +148,15 @@ li{margin:4px 0}
     else { rows = 0; $('bridges').innerHTML = ''; ['T1','T3','T4','T5'].forEach(function (t) { var el = $(t); el.className = 'badge'; el.textContent = t + (t === 'T1' ? ' reachable' : t === 'T3' ? ' handshake' : t === 'T4' ? ' bootstrap' : ' end-to-end'); }); $('bridges-empty').style.display = ''; Native.connect(); }
   };
 
-  window.onEvent = onEvent;
+  // The shell hands every event over as text (the engine's own JSON line) and parses it here.
+  window.onEvent = function (text) {
+    var e;
+    try { e = typeof text === 'string' ? JSON.parse(text) : text; } catch (_) { return; }
+    onEvent(e);
+  };
   var first = snapshot();
-  (first.history || []).forEach(onEvent);
+  // A page reopened while the engine runs (rotation, returning to the app) shows what happened.
+  (first.history || []).forEach(window.onEvent);
   render(first);
   setInterval(function () { render(snapshot()); }, 1200);
 })();

@@ -46,9 +46,10 @@ class EngineService : Service() {
         if (intent?.action == ACTION_STOP) {
             stopEngine()
             stopSelf()
-            return START_NOT_STICKY
         }
-        return START_STICKY
+        // Not sticky: a service that the system killed stays off. Restarting it would bring back
+        // a "connected" notification over an engine that is idle, and nothing runs unless asked.
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
